@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionMessage from '@/Components/ActionMessage.vue';
 import ActionSection from '@/Components/ActionSection.vue';
@@ -46,22 +46,6 @@ const createApiToken = () => {
     });
 };
 
-const copyToken = () => {
-    const tokenField = document.getElementById('token_field');
-    const range = document.createRange();
-    range.selectNode(tokenField);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand('copy');
-    window.getSelection().removeAllRanges();
-    
-    const copyTokenButton = document.getElementById('copy_token_button');
-    copyTokenButton.innerText = 'Token copié';
-    setTimeout(() => {
-        copyTokenButton.innerText = 'Copier le token';
-    }, 2000);
-};
-
 const manageApiTokenPermissions = (token) => {
     updateApiTokenForm.permissions = token.abilities;
     managingPermissionsFor.value = token;
@@ -86,120 +70,24 @@ const deleteApiToken = () => {
         onSuccess: () => (apiTokenBeingDeleted.value = null),
     });
 };
-
-// Fonction pour catégoriser dynamiquement les permissions
-const categorizedPermissions = computed(() => {
-    const categories = {};
-
-    props.availablePermissions.forEach(permission => {
-        const [category, action] = permission.split(':');
-        if (!categories[category]) {
-            categories[category] = [];
-        }
-        categories[category].push(permission);
-    });
-
-    return categories;
-});
-
-// Fonction pour cocher toutes les permissions d'une catégorie
-const checkAllPermissions = (category) => {
-    const permissionsToCheck = categorizedPermissions.value[category];
-    permissionsToCheck.forEach(permission => {
-        if (!createApiTokenForm.permissions.includes(permission)) {
-            createApiTokenForm.permissions.push(permission);
-        }
-    });
-};
-
-// Fonction pour décocher toutes les permissions d'une catégorie
-const uncheckAllPermissions = (category) => {
-    createApiTokenForm.permissions = createApiTokenForm.permissions.filter(permission => {
-        return !categorizedPermissions.value[category].includes(permission);
-    });
-};
-
-// Fonction pour cocher toutes les permissions dans le modal
-const checkAllModalPermissions = (category) => {
-    const permissionsToCheck = categorizedPermissions.value[category];
-    permissionsToCheck.forEach(permission => {
-        if (!updateApiTokenForm.permissions.includes(permission)) {
-            updateApiTokenForm.permissions.push(permission);
-        }
-    });
-};
-
-// Fonction pour décocher toutes les permissions dans le modal
-const uncheckAllModalPermissions = (category) => {
-    updateApiTokenForm.permissions = updateApiTokenForm.permissions.filter(permission => {
-        return !categorizedPermissions.value[category].includes(permission);
-    });
-};
-const imageUrl = ref('/storage/images/computer_craft_token.png');
 </script>
 
 <template>
     <div>
-        <!-- Explication de comment utiliser les jeton API dans les ordinateurs de computercraft -->
-        <div class="mb-4">
-            <div class="flex flex-row space-x-4">
-                <div class="w-1/2">
-                    <!-- Titre -->
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">Utiliser les jetons API dans ComputerCraft</h2>
-                    <!-- Description -->
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Les jetons API permettent aux ordinateurs dans Minecraft (mod ComputerCraft) de s'authentifier auprès de notre application en votre nom.
-                        <br><br>
-                        Une fois un ordinateur chargé il va demander un jeton API pour pouvoir communiquer avec l'application.
-                        <br>
-                        Sans Jeton API, l'ordinateur ne démarera pas.
-                        <br><br>
-                        Pour obtenir un jeton API, cliquez sur le bouton "Créer un jeton API" ci-dessous.
-                        <br>
-                        Une fois le jeton créé, copiez-le et collez-le dans l'ordinateur.
-                        <br>
-                        Vous pouvez également gérer les jetons existants ci-dessous.
-                        <br><br>
-                        <span class="text-red-500">Attention: Ne partagez jamais votre jeton API avec quiconque !</span>
-                        <br>
-                        <br>
-                        Sur la droite, vous pouvez voir l'image que l'ordinateur de ComputerCraft affichera lorsqu'il demandera un jeton API.
-                    </p>
-                </div>
-                <div class="w-1/2">
-                    <!-- Récupérer l'image du dossier de stockage -->
-
-                    <div class="image-container">
-                        <img :src="imageUrl" alt="ComputerCraft Image">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <SectionBorder />
-
-        <!-- Générer un jeton API -->
+        <!-- Generate API Token -->
         <FormSection @submitted="createApiToken">
             <template #title>
-                Créer un jeton API
+                Create API Token
             </template>
 
             <template #description>
-                Les jetons sont des clés permettant à des services tiers de s'authentifier auprès de l'application.
-                <br><br>
-                Ils sont unique et possèdes des permissions spécifiques.
-                <br><br>
-                Le menu sur la droite permet de crée un jeton avec des permissions spécifiques.
+                API tokens allow third-party services to authenticate with our application on your behalf.
             </template>
 
             <template #form>
-                <!-- Nom du jeton -->
+                <!-- Token Name -->
                 <div class="col-span-6 sm:col-span-4">
-                    <InputLabel for="name" value="Nom" />
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Attention, le nom du jeton ne peux pas être modifié.</p>
-
-
+                    <InputLabel for="name" value="Name" />
                     <TextInput
                         id="name"
                         v-model="createApiTokenForm.name"
@@ -210,33 +98,16 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                     <InputError :message="createApiTokenForm.errors.name" class="mt-2" />
                 </div>
 
-                <!-- Permissions du jeton -->
+                <!-- Token Permissions -->
                 <div v-if="availablePermissions.length > 0" class="col-span-6">
                     <InputLabel for="permissions" value="Permissions" />
 
-                    <div class="mt-2">
-                        <div v-for="(permissions, category) in categorizedPermissions" :key="category" class="mb-4">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-medium text-gray-900 dark:text-white capitalize">
-                                    {{ category.replace('_', ' ') }}
-                                </h3>
-                                <div>
-                                    <button type="button" class="text-sm text-blue-500 underline mr-2" @click="checkAllPermissions(category)">
-                                        Tout cocher
-                                    </button>
-                                    <button type="button" class="text-sm text-blue-500 underline" @click="uncheckAllPermissions(category)">
-                                        Tout décocher
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div v-for="permission in permissions" :key="permission">
-                                    <label class="flex items-center">
-                                        <Checkbox v-model:checked="createApiTokenForm.permissions" :value="permission" />
-                                        <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ permission.split(':')[1] }}</span>
-                                    </label>
-                                </div>
-                            </div>
+                    <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div v-for="permission in availablePermissions" :key="permission">
+                            <label class="flex items-center">
+                                <Checkbox v-model:checked="createApiTokenForm.permissions" :value="permission" />
+                                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ permission }}</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -244,11 +115,11 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
 
             <template #actions>
                 <ActionMessage :on="createApiTokenForm.recentlySuccessful" class="me-3">
-                    Créé.
+                    Created.
                 </ActionMessage>
 
                 <PrimaryButton :class="{ 'opacity-25': createApiTokenForm.processing }" :disabled="createApiTokenForm.processing">
-                    Créer
+                    Create
                 </PrimaryButton>
             </template>
         </FormSection>
@@ -256,18 +127,18 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
         <div v-if="tokens.length > 0">
             <SectionBorder />
 
-            <!-- Gérer les jetons API -->
+            <!-- Manage API Tokens -->
             <div class="mt-10 sm:mt-0">
                 <ActionSection>
                     <template #title>
-                        Gérer les jetons API
+                        Manage API Tokens
                     </template>
 
                     <template #description>
-                        Chaque jeton que vous créez peut être supprimé à tout moment si vous pensez qu'il a été compromis ou s'ils ne sont plus nécessaires.
+                        You may delete any of your existing tokens if they are no longer needed.
                     </template>
 
-                    <!-- Liste des jetons API -->
+                    <!-- API Token List -->
                     <template #content>
                         <div class="space-y-6">
                             <div v-for="token in tokens" :key="token.id" class="flex items-center justify-between">
@@ -277,7 +148,7 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
 
                                 <div class="flex items-center ms-2">
                                     <div v-if="token.last_used_ago" class="text-sm text-gray-400">
-                                        Dernière utilisation {{ token.last_used_ago }}
+                                        Last used {{ token.last_used_ago }}
                                     </div>
 
                                     <button
@@ -289,7 +160,7 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                                     </button>
 
                                     <button class="cursor-pointer ms-6 text-sm text-red-500" @click="confirmApiTokenDeletion(token)">
-                                        Supprimer
+                                        Delete
                                     </button>
                                 </div>
                             </div>
@@ -299,70 +170,49 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
             </div>
         </div>
 
-        <!-- Modal de valeur du jeton -->
+        <!-- Token Value Modal -->
         <DialogModal :show="displayingToken" @close="displayingToken = false">
             <template #title>
-                Jeton API
+                API Token
             </template>
 
             <template #content>
                 <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Voici votre nouveau jeton API.</p>
-                    <br>
-                    <p class="text-red-500">Pour votre sécurité, il ne sera plus affiché.<br>Assurez-vous de le copier maintenant.</p>
+                    Please copy your new API token. For your security, it won't be shown again.
                 </div>
 
-                <div v-if="$page.props.jetstream.flash.token" class="mt-4 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all" id = "token_field">
+                <div v-if="$page.props.jetstream.flash.token" class="mt-4 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all">
                     {{ $page.props.jetstream.flash.token }}
                 </div>
             </template>
 
             <template #footer>
                 <SecondaryButton @click="displayingToken = false">
-                    Fermer
+                    Close
                 </SecondaryButton>
-
-                <PrimaryButton @click="copyToken" class="ms-3" id="copy_token_button">
-                    Copier le token
-                </PrimaryButton>
             </template>
         </DialogModal>
 
-        <!-- Modal de permissions du jeton API -->
+        <!-- API Token Permissions Modal -->
         <DialogModal :show="managingPermissionsFor != null" @close="managingPermissionsFor = null">
             <template #title>
-                Permissions du Jeton API
+                API Token Permissions
             </template>
 
             <template #content>
-                <div v-for="(permissions, category) in categorizedPermissions" :key="category" class="mb-4">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white capitalize">
-                            {{ category.replace('_', ' ') }}
-                        </h3>
-                        <div>
-                            <button type="button" class="text-sm text-blue-500 underline mr-2" @click="checkAllModalPermissions(category)">
-                                Tout cocher
-                            </button>
-                            <button type="button" class="text-sm text-blue-500 underline" @click="uncheckAllModalPermissions(category)">
-                                Tout décocher
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div v-for="permission in permissions" :key="permission">
-                            <label class="flex items-center">
-                                <Checkbox v-model:checked="updateApiTokenForm.permissions" :value="permission" />
-                                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ permission.split(':')[1] }}</span>
-                            </label>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="permission in availablePermissions" :key="permission">
+                        <label class="flex items-center">
+                            <Checkbox v-model:checked="updateApiTokenForm.permissions" :value="permission" />
+                            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ permission }}</span>
+                        </label>
                     </div>
                 </div>
             </template>
 
             <template #footer>
                 <SecondaryButton @click="managingPermissionsFor = null">
-                    Annuler
+                    Cancel
                 </SecondaryButton>
 
                 <PrimaryButton
@@ -371,24 +221,24 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                     :disabled="updateApiTokenForm.processing"
                     @click="updateApiToken"
                 >
-                    Enregistrer
+                    Save
                 </PrimaryButton>
             </template>
         </DialogModal>
 
-        <!-- Modal de confirmation de suppression de jeton -->
+        <!-- Delete Token Confirmation Modal -->
         <ConfirmationModal :show="apiTokenBeingDeleted != null" @close="apiTokenBeingDeleted = null">
             <template #title>
-                Supprimer le Jeton API
+                Delete API Token
             </template>
 
             <template #content>
-                Êtes-vous sûr de vouloir supprimer ce jeton API ?
+                Are you sure you would like to delete this API token?
             </template>
 
             <template #footer>
                 <SecondaryButton @click="apiTokenBeingDeleted = null">
-                    Annuler
+                    Cancel
                 </SecondaryButton>
 
                 <DangerButton
@@ -397,7 +247,7 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                     :disabled="deleteApiTokenForm.processing"
                     @click="deleteApiToken"
                 >
-                    Supprimer
+                    Delete
                 </DangerButton>
             </template>
         </ConfirmationModal>
