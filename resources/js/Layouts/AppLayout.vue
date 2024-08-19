@@ -51,7 +51,15 @@ const logout = () => {
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Dashboard
                                 </NavLink>
+                                <NavLink :href="route('api-tokens.index')" :active="route().current('api-tokens.index')">
+                                    API Tokens
+                                </NavLink>
+                                <NavLink :href="route('computers.index')" :active="route().current('computers.index')">
+                                    Computers
+                                </NavLink>
+
                             </div>
+                            
                         </div>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
