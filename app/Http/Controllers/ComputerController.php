@@ -31,8 +31,9 @@ class ComputerController extends Controller
             'computers' => $computers->map(function ($computer) {
                 // Convert the computer and its associated personal access token to array
                 return [
-                    'computer' => $computer->toArray(),
-                    'personal_access_token' => $computer->personalAccessToken ? $computer->personalAccessToken->toArray() : null,
+                    'computer_id' => $computer->id,
+                    'token_name' => $computer->personalAccessToken->name,
+                    'token_id' => $computer->personalAccessToken->id,
                 ];
             }),
         ]);
@@ -51,16 +52,22 @@ class ComputerController extends Controller
 
         $request->validate([
             'personal_access_token_id' => 'required|exists:personal_access_tokens,id',
+            'id' => 'required|unique:computers,id',  // Ensure the computer ID is unique
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
         ]);
-        
 
         // Create a new computer
         $computer = Computer::create([
+            'id' => $request->id,
             'personal_access_token_id' => $request->personal_access_token_id,
+            'name' => $request->name,
+            'description' => $request->description,
         ]);
 
         return redirect()->route('computers.index')->with('success', 'Computer added successfully.');
     }
+
     
     /**
      * Remove the specified computer from storage.

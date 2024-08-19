@@ -12,12 +12,14 @@ const props = defineProps({
 
 // Initialize the form with empty values
 let form = useForm({
-  personal_access_token_id: ''  // Initialize with an empty string
+  personal_access_token_id: '',
+  name: '',
+  description: '',
+  id: null,
 });
 
 // Handle form submission
 const handleSubmit = () => {
-  console.log('Current Input Value:', form.personal_access_token_id);  // Log the current value
   form.post(route('computers.store'), {
     onSuccess: () => {
       form.reset();
@@ -42,38 +44,38 @@ const destroyComputer = (computerId) => {
   }
 };
 
+// Log the computers prop
+console.log('Computers:', props.computers);
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-6">Computers Manager</h1>
+  <div class="p-6">
+    <h1 class="text-2xl font-bold mb-6 border-b pb-2">Computers Manager</h1>
 
     <!-- Display existing computers with their associated tokens -->
-    <div v-if="computers.length > 0" class="space-y-4">
+    <div v-if="computers.length > 0" class="space-y-4 border p-4 rounded-md shadow-md">
+      <h2 class="text-lg font-semibold mb-4 border-b pb-2">Existing Computers</h2>
       <div
         v-for="computer in computers"
-        :key="computer.computer.id"
-        class="flex justify-between items-center p-4 bg-gray-800 text-white rounded-md shadow-md"
+        :key="computer.computer_id"
+        class="flex justify-between items-center p-4 bg-gray-800 text-white rounded-md shadow-md border border-gray-700"
       >
         <div>
-          <p><strong>Computer ID:</strong> {{ computer.computer.id }}</p>
-          <p><strong>Token ID:</strong> {{ computer.personal_access_token.id }}</p>
-          <p><strong>Token Name:</strong> {{ computer.personal_access_token.name }}</p>
+          <p><strong>Computer ID:</strong> {{ computer.computer_id }}</p>
+          <p><strong>Token ID:</strong> {{ computer.token_id }}</p>
+          <p><strong>Token Name:</strong> {{ computer.token_name }}</p>
         </div>
         <div>
-          <PrimaryButton @click="destroyComputer(computer.computer.id)" class="bg-red-500 hover:bg-red-600">
+          <PrimaryButton @click="destroyComputer(computer.computer_id)" class="bg-red-500 hover:bg-red-600">
             Delete
           </PrimaryButton>
         </div>
       </div>
     </div>
-    <div v-else>
-      No computers found.
-    </div>
 
     <!-- Form to add a new computer -->
-    <div class="mt-6">
-      <h2 class="text-lg font-semibold">Add a New Computer</h2>
+    <div class="mt-6 border p-4 rounded-md shadow-md">
+      <h2 class="text-lg font-semibold mb-4 border-b pb-2">Add a New Computer</h2>
       <form @submit.prevent="handleSubmit">
         <div class="mb-4">
           <InputLabel for="personal_access_token_id" value="Personal Access Token ID" />
@@ -85,6 +87,36 @@ const destroyComputer = (computerId) => {
             autofocus
           />
           <InputError :message="form.errors.personal_access_token_id" class="mt-2" />
+        </div>
+        <div class="mb-4">
+          <InputLabel for="name" value="Computer Name" />
+          <TextInput
+            id="name"
+            type="text"
+            v-model="form.name"
+            class="mt-1 block w-full"
+          />
+          <InputError :message="form.errors.name" class="mt-2" />
+        </div>
+        <div class="mb-4">
+          <InputLabel for="description" value="Computer Description" />
+          <TextInput
+            id="description"
+            type="text"
+            v-model="form.description"
+            class="mt-1 block w-full"
+          />
+          <InputError :message="form.errors.description" class="mt-2" />
+        </div>
+        <div class="mb-4">
+          <InputLabel for="id" value="Computer ID" />
+          <TextInput
+            id="id"
+            type="text"
+            v-model="form.id"
+            class="mt-1 block w-full"
+          />
+          <InputError :message="form.errors.id" class="mt-2" />
         </div>
         <ActionMessage :on="form.recentlySuccessful" class="mt-4">
           Computer added successfully.
