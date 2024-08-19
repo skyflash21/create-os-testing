@@ -70,6 +70,47 @@ class ComputerController extends Controller
         return redirect()->route('computers.index')->with('success', 'Computer added successfully.');
     }
 
+    /**
+     * Register a new computer from the api.
+     * 
+     * @param Request $request
+     * @return json
+     */
+    public function register_computer(Request $request)
+    {
+        // the incoming request is from a post request, the data is in the request body
+        // this is the list of data :
+        // - personal_access_token (not the id but the token itself), the token is not in the body but in the authorization header
+        // - id
+        // - name
+        // - description
+        
+        // get the personal access token from the request header
+        $personal_access_token = PersonalAccessToken::findToken($request->bearerToken());
+
+        // check if the personal access token is valid
+        if (!$personal_access_token) {
+            return response()->json(['error' => 'Unauthorized action or invalid token.'], 401);
+        }
+
+        // validate the incoming request data
+        $request->validate([
+            'id' => 'required|unique:computers,id',  // Ensure the computer ID is unique
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        // Create a new computer
+        $computer = Computer::create([
+            'id' => $request->id,
+            'personal_access_token_id' => $personal_access_token->id,
+            'name' => $request->name,
+            'description' => $request->description,
+        ]);
+
+        return response()->json(['message' => 'Computer added successfully.'], 201);
+    }
+
     
     /**
      * Remove the specified computer from storage.
