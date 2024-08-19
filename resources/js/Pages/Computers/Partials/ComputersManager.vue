@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
@@ -29,19 +28,44 @@ const handleSubmit = () => {
   });
 };
 
+// Handle computer deletion
+const destroyComputer = (computerId) => {
+  if (confirm('Are you sure you want to delete this computer?')) {
+    form.delete(route('computers.destroy', computerId), {
+      onSuccess: () => {
+        console.log('Computer deleted successfully.');
+      },
+      onError: () => {
+        console.error('Failed to delete the computer:', form.errors);
+      },
+    });
+  }
+};
+
 </script>
 
 <template>
   <div>
-    <h1>Computers Manager</h1>
+    <h1 class="text-2xl font-bold mb-6">Computers Manager</h1>
 
-    <!-- Display existing computers -->
-    <div v-if="props.computers.length > 0">
-      <ul>
-        <li v-for="computer in props.computers" :key="computer.id">
-          Computer ID: {{ computer.id }}
-        </li>
-      </ul>
+    <!-- Display existing computers with their associated tokens -->
+    <div v-if="computers.length > 0" class="space-y-4">
+      <div
+        v-for="computer in computers"
+        :key="computer.computer.id"
+        class="flex justify-between items-center p-4 bg-gray-800 text-white rounded-md shadow-md"
+      >
+        <div>
+          <p><strong>Computer ID:</strong> {{ computer.computer.id }}</p>
+          <p><strong>Token ID:</strong> {{ computer.personal_access_token.id }}</p>
+          <p><strong>Token Name:</strong> {{ computer.personal_access_token.name }}</p>
+        </div>
+        <div>
+          <PrimaryButton @click="destroyComputer(computer.computer.id)" class="bg-red-500 hover:bg-red-600">
+            Delete
+          </PrimaryButton>
+        </div>
+      </div>
     </div>
     <div v-else>
       No computers found.
