@@ -2,6 +2,7 @@
 
 os.pullEvent = os.pullEventRaw
 shell.run("set shell.allow_disk_startup false")
+shell.run("set motd.enable false")
 
 local function check_for_update()
     print("Verification de la mise a jour ")
@@ -99,11 +100,18 @@ local function verify_computer_availability()
     local body = { id = os.getComputerID() }
     local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/verify_computer_availability", textutils.serializeJSON(body), header)
     
-    -- if code is 200, then computer is available
+    -- if code is 200, then computer is available if its 409 then computer is not available otherwise error
     if response then
         return true
     else
-        return false
+        if http_failing_response.getResponseCode() == 409 then
+            return false
+        else
+            print(fail_string)
+            print(http_failing_response.getResponseCode())
+            read()
+            os.shutdown()
+        end
     end
 end
 
@@ -172,13 +180,21 @@ local function initialize_computer()
 end
 
 local function main()
-    if not settings.get("token") then
-        reset_computer()
-        set_token_by_user()
-        
-        if verify_computer_availability() then
-            register_computer()
+    if verify_computer_availability() then
+        print("L'ordinateur est deja enregistre")
+        sleep(1)
+    else
+        print("L'ordinateur n'est pas enregistre")
+        sleep(1)
+        if not settings.get("token") then
+            set_token_by_user()
         end
+        if not is_api_available() then
+            print("L'api n'est pas disponible")
+            read()
+            os.shutdown()
+        end
+        register_computer()
     end
     
     check_for_update()

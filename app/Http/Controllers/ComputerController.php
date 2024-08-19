@@ -76,7 +76,7 @@ class ComputerController extends Controller
      * @param Request $request
      * @return json
      */
-    public function register_computer(Request $request)
+    public function registerComputer(Request $request)
     {
         // the incoming request is from a post request, the data is in the request body
         // this is the list of data :
@@ -131,14 +131,14 @@ class ComputerController extends Controller
      * @param Request $request
      * @return json
      */
-    public function verify_computer_available(Request $request)
+    public function verifyComputerAvailable(Request $request)
     {
         // check if the computer already exists
         if (Computer::where('id', $request->id)->exists()) {
-            return response()->json(['error' => 'Computer is not available.'], 409);
+            return response()->json(['available' => false], 200);
+        } else {
+            return response()->json(['available' => true], 200);
         }
-
-        return response()->json(['message' => 'Computer is available.'], 200);
     }
 
     
