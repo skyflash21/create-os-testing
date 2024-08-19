@@ -93,12 +93,26 @@ class ComputerController extends Controller
             return response()->json(['error' => 'Unauthorized action or invalid token.'], 401);
         }
 
+        //Check if the computer_id is already in the database
+        if ($request->id == null) {
+            return response()->json(['error' => 'Computer ID is required.'], 400);
+        }
+
+        if (Computer::where('id', $request->id)->exists()) {
+            return response()->json(['error' => 'Computer already exists.'], 409);
+        }
+
         // validate the incoming request data
         $request->validate([
             'id' => 'required|unique:computers,id',  // Ensure the computer ID is unique
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
         ]);
+
+        // check if the computer already exists
+        if (Computer::where('id', $request->id)->exists()) {
+            return response()->json(['error' => 'Computer already exists.'], 409);
+        }
 
         // Create a new computer
         $computer = Computer::create([
@@ -109,6 +123,22 @@ class ComputerController extends Controller
         ]);
 
         return response()->json(['message' => 'Computer added successfully.'], 201);
+    }
+
+    /**
+     * Verify if the computer is registered.
+     * 
+     * @param Request $request
+     * @return json
+     */
+    public function verify_computer_available(Request $request)
+    {
+        // check if the computer already exists
+        if (Computer::where('id', $request->id)->exists()) {
+            return response()->json(['error' => 'Computer is not available.'], 409);
+        }
+
+        return response()->json(['message' => 'Computer is available.'], 200);
     }
 
     

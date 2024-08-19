@@ -8,4 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Files extends Model
 {
     use HasFactory;
+
+    // Ajout des attributs protégés si nécessaire
+    protected $fillable = ['content', 'version', 'hash', 'path'];
+
 }
