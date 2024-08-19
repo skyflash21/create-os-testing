@@ -13,7 +13,7 @@ const props = defineProps({
 
 // Initialize the form with empty values
 let form = useForm({
-  personal_access_token_id: '2'  // Initialize with an empty string
+  personal_access_token_id: ''  // Initialize with an empty string
 });
 
 // Handle form submission

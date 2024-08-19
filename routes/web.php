@@ -5,9 +5,17 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ComputerController;
+use App\Http\Controllers\TodoController;
 
 // Resource route for computers
 Route::resource('computers', ComputerController::class);
+
+Route::get('/todo', [TodoController::class, 'index'])->name('todo.index');
+Route::post('/todo', [TodoController::class, 'store'])->name('todo.store');
+Route::put('/todo/{todo}', [TodoController::class, 'update'])->name('todo.update');
+Route::delete('/todo/{todo}', [TodoController::class, 'destroy'])->name('todo.destroy');
+
+
 
 
 Route::get('/', function () {
