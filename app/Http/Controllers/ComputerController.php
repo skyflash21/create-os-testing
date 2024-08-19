@@ -32,6 +32,8 @@ class ComputerController extends Controller
                 // Convert the computer and its associated personal access token to array
                 return [
                     'computer_id' => $computer->id,
+                    'computer_name' => $computer->name,
+                    'computer_description' => $computer->description,
                     'token_name' => $computer->personalAccessToken->name,
                     'token_id' => $computer->personalAccessToken->id,
                 ];

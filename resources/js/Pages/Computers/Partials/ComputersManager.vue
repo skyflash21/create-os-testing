@@ -62,8 +62,10 @@ console.log('Computers:', props.computers);
       >
         <div>
           <p><strong>Computer ID:</strong> {{ computer.computer_id }}</p>
+          <p><strong>Computer Name:</strong> {{ computer.computer_name }}</p>
           <p><strong>Token ID:</strong> {{ computer.token_id }}</p>
           <p><strong>Token Name:</strong> {{ computer.token_name }}</p>
+          <p><strong>Description:</strong> {{ computer.computer_description }}</p>
         </div>
         <div>
           <PrimaryButton @click="destroyComputer(computer.computer_id)" class="bg-red-500 hover:bg-red-600">
