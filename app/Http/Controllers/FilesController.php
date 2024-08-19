@@ -21,8 +21,13 @@ class FilesController extends Controller
         $relativePath = $request->input('path', '');
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
         $getRaw = $request->boolean('get_raw', false);
+        $version = $request->input('version', null);
 
-        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        if ($version) {
+            $fileRecord = Files::where('path', $fullPath)->where('version', $version)->first();
+        } else {
+            $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        }
         
         if (!$fileRecord) {
             if (!is_file($fullPath)) {
@@ -139,34 +144,21 @@ class FilesController extends Controller
      * 
      * @param string $filePath
      * @param string $content
-     * @param string|null $currentVersion
+     * @param int|null $currentVersion
      * @return Files
      */
-    protected function storeNewFile(string $filePath, string $content, string $currentVersion = '1.0'): Files
+    protected function storeNewFile(string $filePath, string $content, ?int $currentVersion = null): Files
     {
-        $newVersion = $currentVersion ? $this->incrementVersion($currentVersion) : '1.0';
+        $newVersion = $currentVersion ? $currentVersion + 1 : 1;
         $file = new Files();
         $file->content = $content;
         $file->hash = hash('sha256', $content);
         $file->path = $filePath;
         $file->version = $newVersion;
-        $file->size = filesize($filePath);
+        $file->size = strlen($content);
         $file->save();
 
         return $file;
-    }
-
-    /**
-     * Incrémenter la version d'un fichier.
-     * 
-     * @param string $currentVersion
-     * @return string
-     */
-    protected function incrementVersion(string $currentVersion): string
-    {
-        [$major, $minor] = explode('.', $currentVersion);
-        $minor++;
-        return "$major.$minor";
     }
 
     /**

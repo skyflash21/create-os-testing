@@ -1,10 +1,10 @@
--- Cette classe permet de charger la configuration initale et de préparer l'ordinateur
+-- Cette classe permet de charger la configuration initale et de preparer l'ordinateur
 
-local debug_token = "1qEnqmcCdYNspJsTu0n8Din7D6PdN4naNPmKRvxbf2d2d9c8"
-local debug = true
+os.pullEvent = os.pullEventRaw
+shell.run("set shell.allow_disk_startup false")
 
 local function check_for_update()
-    print("Vérification de la mise à jour")
+    print("Verification de la mise a jour ")
 
     local version = settings.get("version") or 0
 
@@ -12,33 +12,64 @@ local function check_for_update()
     local body = { path = "startup.lua"}
     local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_file_version", textutils.serializeJSON(body), header)
 
-    if response then
-        local data = response.readAll()
-        response.close()
-        local json = textutils.unserializeJSON(data)
-        print("Version: " .. json.version)
-    else
+    if not response then
         print(fail_string)
         print(http_failing_response.getResponseCode())
+        read()
+        os.shutdown()
+    end
+
+    local data = response.readAll()
+    response.close()
+    local json = textutils.unserializeJSON(data)
+
+    json.version = tonumber(json.version)
+
+    if json.version > version then
+        local body = { path = "startup.lua", version = json.version, get_raw = true }
+        local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_file", textutils.serializeJSON(body), header)
+
+        if not response then
+            print(fail_string)
+            print(http_failing_response.getResponseCode())
+            read()
+            os.shutdown()
+        end
+
+        local data = response.readAll()
+        response.close()
+        local file = fs.open("startup", "w")
+        file.write(data)
+        file.close()
+        settings.set("version", json.version)
+        settings.save()
+        print("Mise a jour effectuee avec succes.")
+        sleep(1)
+        os.reboot()
+    else
+        print("Pas de mise a jour disponible.")
+        print("Version actuelle: " .. version)
+        print("Version disponible: " .. json.version)
+        read()
     end
 
 end
 
 local function reset_computer()
-    -- Opération de nettoyage des settings
+    -- Operation de nettoyage des settings
     settings.clear()
     settings.save()
 
     local listeFichiers = fs.list("/")
     for i = 1, #listeFichiers do
-        -- On vérifie que on peux le supprimer
-        if fs.isReadOnly(listeFichiers[i]) == false and listeFichiers[i] ~= "startup.lua" then
+        -- On verifie que on peux le supprimer
+        if fs.isReadOnly(listeFichiers[i]) == false and listeFichiers[i] ~= "startup" then
             fs.delete(listeFichiers[i])
         end
     end
 end
 
--- On va commencer par demander le token à l'utilisateur
+-- On va commencer par demander le token a l'utilisateur
 local function set_token_by_user()
     term.clear()
     term.setCursorPos(1, 1)
@@ -52,7 +83,7 @@ local function set_token_by_user()
     term.setCursorPos(1, 1)
 end
 
--- On vérifie que l'api est accessible
+-- On verifie que l'api est accessible
 
 local function is_api_available()
     local response, fail_string, http_failing_response = http.get("http://create-os-testing.test/api/api_test")
@@ -128,7 +159,7 @@ local function register_computer(c_name, c_description)
     end
 end
 
--- Cette fonction permet de télecharger les fichiers de l'ordinateur
+-- Cette fonction permet de telecharger les fichiers de l'ordinateur
 local function initialize_computer()
     term.clear()
     term.setCursorPos(1, 1)
@@ -136,30 +167,26 @@ local function initialize_computer()
 
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
     local body = { path = "/Main" }
-    -- On va récupérer la liste des fichiers à télécharger
+    -- On va recuperer la liste des fichiers a telecharger
     local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_files_list/", textutils.serializeJSON(body), header)
 end
 
 local function main()
-    if debug then
-        settings.set("token", debug_token)
-        settings.save()
+    if not settings.get("token") then
+        reset_computer()
+        set_token_by_user()
+        
         if verify_computer_availability() then
-            register_computer("Ordinateur de test", "Ordinateur de test")
-        end
-    else
-        if not settings.get("token") then
-            reset_computer()
-            set_token_by_user()
-            
-            if verify_computer_availability() then
-                register_computer()
-            end
+            register_computer()
         end
     end
     
     check_for_update()
-
 end
 
-main()
+-- start with try catch
+local status, err = pcall(main)
+if not status then
+    read()
+    os.shutdown()
+end
