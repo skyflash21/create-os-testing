@@ -170,6 +170,10 @@ local function initialize_computer()
     term.setCursorPos(1, 1)
     print("Initialisation de l'ordinateur")
 
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    
+    -- Ici on va charger les différents élements de l'ordinateur
+    -- On va commencer par le gestionnaire de thread
 end
 
 local function main()
