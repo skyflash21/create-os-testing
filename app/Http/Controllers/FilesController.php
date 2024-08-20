@@ -59,6 +59,7 @@ class FilesController extends Controller
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
 
         $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        $file_changed = false;
 
         if (!$fileRecord) {
             if (!is_file($fullPath)) {
@@ -71,10 +72,11 @@ class FilesController extends Controller
             $content = $this->getFileContent($fullPath);
             if ($this->hasFileChanged($content, $fileRecord->hash)) {
                 $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
+                $file_changed = true;
             }
         }
 
-        return response()->json(['version' => $fileRecord->version], 200);
+        return response()->json(['version' => $fileRecord->version, 'file_changed' => $file_changed], 200);
     }
 
     /**
@@ -108,10 +110,19 @@ class FilesController extends Controller
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . self::STARTUP_FILE);
 
         if (!is_file($fullPath)) {
-            return response()->json(['error' => "Le fichier de démarrage n'existe pas"], 404);
+            return response()->json(['error' => "Le fichier d'installation n'existe pas"], 404);
         }
 
+        // check if the file has changed
         $content = $this->getFileContent($fullPath);
+        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        if (!$fileRecord) {
+            $fileRecord = $this->storeNewFile($fullPath, $content);
+        } else {
+            if ($this->hasFileChanged($content, $fileRecord->hash)) {
+                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
+            }
+        }
 
         return $this->sendRawContent($content);
     }
@@ -130,7 +141,16 @@ class FilesController extends Controller
             return response()->json(['error' => "Le fichier de démarrage n'existe pas"], 404);
         }
 
+        // check if the file has changed
         $content = $this->getFileContent($fullPath);
+        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        if (!$fileRecord) {
+            $fileRecord = $this->storeNewFile($fullPath, $content);
+        } else {
+            if ($this->hasFileChanged($content, $fileRecord->hash)) {
+                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
+            }
+        }
 
         return $this->sendRawContent($content);
     }
@@ -144,7 +164,9 @@ class FilesController extends Controller
     protected function getFileContent(string $filePath): string
     {
         $content = file_get_contents($filePath);
-        return $this->minifyLua($content);
+        $content = $this->minifyLua($content);
+
+        return $content;
     }
 
     /**
@@ -209,15 +231,38 @@ class FilesController extends Controller
     }
 
     /**
-     * Minifier le code Lua.
+     * Minify Lua code by removing unnecessary whitespace, comments, and newlines.
      * 
      * @param string $content
      * @return string
      */
     protected function minifyLua(string $content): string
     {
+        // Remove block comments --[[]]
+        $content = preg_replace('/--\[\[.*?\]\]/s', '', $content);
+
+        // Remove single-line comments --
         $content = preg_replace('/--.*$/m', '', $content);
-        $content = preg_replace(['/[\s\t\n]+/m', '/\s*([\=\+\-\*\/\,\(\)\{\}])\s*/'], [' ', '$1'], $content);
-        return preg_replace('/\s*([(){}=+\-*\/,])\s*/', '$1', $content);
+
+        // Replace multiple space characters with a single space without affecting newlines
+        $content = preg_replace('/[ \t]+/', ' ', $content);
+
+        // Replace multiple newline characters with a single newline
+        $content = preg_replace('/\n+/', "\n", $content);
+
+        // Remove empty lines
+        $content = preg_replace('/^\s*[\r\n]/m', '', $content);
+
+        // Remove space at the beginning of a line
+        $content = preg_replace('/^\s+/m', '', $content);
+
+        // Remove space at the end of a line
+        $content = preg_replace('/\s+$/m', '', $content);
+
+        return $content;
     }
+
+
+
+
 }

@@ -2,7 +2,7 @@
 
 
 local function check_for_update()
-    print("Verification de la mise a jour ")
+    print("Verification de la mise a jour ...")
 
     local version = settings.get("version") or 0
 
@@ -45,7 +45,7 @@ local function check_for_update()
         sleep(1)
         os.reboot()
     else
-        print("Pas de mise a jour disponible.")
+        print("Pas de mise a jour disponible")
         print("Version actuelle: " .. version)
         print("Version disponible: " .. json.version)
         read()
@@ -175,7 +175,6 @@ end
 local function main()
     if verify_computer_availability() then
         print("L'ordinateur est deja enregistre")
-        sleep(1)
     else
         print("L'ordinateur n'est pas enregistre")
         sleep(1)

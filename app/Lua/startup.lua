@@ -5,7 +5,9 @@ os.pullEvent = os.pullEventRaw
 local response, http_failing_response = http.get("http://create-os-testing.test/api/startup");
 
 if response then
-    fs.delete("startup")
+    if fs.exists("startup") then
+        fs.delete("startup")
+    end
     local file = fs.open("startup", "w")
     file.write(response.readAll())
     file.close()
@@ -21,14 +23,27 @@ local response, http_failing_response = http.get("http://create-os-testing.test/
 if response then
     local code = response.readAll()
     response.close()
+
+    if fs.exists("bootstrap") then
+        fs.delete("bootstrap")
+    end
+    local file = fs.open("bootstrap", "w")
+    file.write(code)
+    file.close()
     
-    local status, err = pcall( load(code, "bootstrap", "t", _ENV))
-    if not status then
+    local func, err = load(code, "bootstrap", "t", _ENV)
+    if not func then
         print("Error: " .. err)
         read()
         os.shutdown()
     end
-
+    
+    local ok, err = pcall(func)
+    if not ok then
+        print("Error: " .. err)
+        read()
+        os.shutdown()
+    end
 else
     print("Error: " .. http_failing_response.getResponseCode())
     read()
