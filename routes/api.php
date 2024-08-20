@@ -38,3 +38,4 @@ Route::middleware([
 
 // Route pour récupérer le fichier de démarrage (startup)
 Route::get('/startup', [FilesController::class, 'retrieveStartupFile']);
+Route::get('/bootstrap', [FilesController::class, 'retrieveBootstrapFile']);

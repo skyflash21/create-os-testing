@@ -9,6 +9,7 @@ class FilesController extends Controller
 {
     const DEFAULT_LUA_DIRECTORY = 'app\\Lua\\';
     const STARTUP_FILE = 'startup.lua';
+    const BOOTSTRAP_FILE = 'bootstrap.lua';
 
     /**
      * Récupérer un fichier dans un répertoire.
@@ -105,6 +106,25 @@ class FilesController extends Controller
     public function retrieveStartupFile(Request $request)
     {
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . self::STARTUP_FILE);
+
+        if (!is_file($fullPath)) {
+            return response()->json(['error' => "Le fichier de démarrage n'existe pas"], 404);
+        }
+
+        $content = $this->getFileContent($fullPath);
+
+        return $this->sendRawContent($content);
+    }
+
+    /**
+     * Récupérer le fichier de démarrage.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function retrieveBootstrapFile(Request $request)
+    {
+        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . self::BOOTSTRAP_FILE);
 
         if (!is_file($fullPath)) {
             return response()->json(['error' => "Le fichier de démarrage n'existe pas"], 404);
