@@ -171,7 +171,7 @@ class FilesController extends Controller
     protected function getFileContent(string $filePath): string
     {
         $content = file_get_contents($filePath);
-        $content = $this->minifyLua($content);
+        //$content = $this->minifyLua($content);
 
         return $content;
     }

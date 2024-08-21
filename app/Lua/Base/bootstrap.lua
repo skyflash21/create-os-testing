@@ -179,12 +179,11 @@ end
 
 -- Cette fonction permet de telecharger les fichiers de l'ordinateur
 local function initialize_computer()
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
-        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
-    -- On récupère la liste des modules
-    local body = { path = "modules" }
+    
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local body = { path = "Components\\api.lua" }
 
-    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_files_list",
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
         textutils.serializeJSON(body), header)
 
     if not response then
@@ -193,37 +192,27 @@ local function initialize_computer()
         read()
         os.shutdown()
     end
-
-    local data = response.readAll()
+    
+    local data = textutils.unserializeJSON(response.readAll())
     response.close()
+    _G.api = load(data.file.content, "api", "t", _ENV)()
+
+    local data = api.post("retrieve_files_list",{ path = "Modules" })
     local json = textutils.unserializeJSON(data)
     local modules = {}
     for i = 1, #json.files do
         local file = json.files[i]
-        local body = { path = "modules/" .. file }
-        local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
-            textutils.serializeJSON(body), header)
+        
+        local executed_code, version = api.get_code("Modules/" .. file, false)
 
-        if not response then
-            print(fail_string)
-            print(http_failing_response.getResponseCode())
-            read()
-            os.shutdown()
-        end
-
-        local data = textutils.unserializeJSON(response.readAll())
-        response.close()
-
-        if data.file.content then
-            local current_module = load(data.file.content, file, "t", _ENV)
-            if current_module then
-                current_module = current_module()
-                current_module = current_module.new()
-                current_module.version = data.file.version
-                print("OK "..file .. " version: " .. data.file.version)
-            else
-                print("FAIL "..file .. " version: " .. data.file.version)
-            end
+        if executed_code then
+            local current_module = executed_code.new()
+            current_module.version = version
+            current_module:init()
+            table.insert(modules, current_module)
+            print("OK "..file .. " version: " .. version)
+        else
+            print("FAIL "..file .. " version: " .. version)
         end
     end
 end
@@ -266,7 +255,7 @@ local function main()
 
     local data = textutils.unserializeJSON(response.readAll())
     response.close()
-    local thread_manager = load(data.file.content)().new()
+    local thread_manager = load(data.file.content, "thread_manager", "t", _ENV)().new()
     thread_manager.version = data.file.version
     thread_manager:addTask(initialize_computer, 1)
     thread_manager:run()

@@ -29,7 +29,7 @@ function module.new()
     self.version = nil -- version du module
 
     -- Initialisation des variables inhérentes au module
-    
+    self.message_model = nil -- modèle de message websocket
     return self
 end
 
@@ -38,6 +38,7 @@ end
     @return void
 ]]--
 function module:init()
+    -- Récupération du modèle de message websocket
 end
 
 --[[

@@ -122,6 +122,27 @@ function Thread_manager:checkToAdd()
     end
 end
 
+--[[
+    Vérifie si une erreur critique est survenue.
+    Les erreurs critique utilise le status "critical_error".
+    Si une erreur critique est survenue, le programme doit s'arrêter.
+
+    La variable _ENV.error contient le message d'erreur.
+    
+    @return void
+]]--
+function Thread_manager:checkForErrors()
+    if _G.status == "critical_error" then
+        term.clear()
+        term.setCursorPos(1, 1)
+        for key, value in pairs(_G.error_detail) do
+            print(key, value)
+        end
+        read()
+        os.shutdown()
+    end
+end
+
 ------------------------------------------------[Main]------------------------------------------------
 
 function Thread_manager:run()
@@ -130,7 +151,9 @@ function Thread_manager:run()
     print("Thread_manager:run")
 
     while true do
+        self:checkForErrors()
         self:checkToAdd()
+
         local living = self.current_task_running
 
         for i = #self.coroutines, 1, -1 do
