@@ -1,14 +1,19 @@
 -- Cette classe permet de charger la configuration initale et de preparer l'ordinateur
-
+shell.run("set shell.allow_disk_startup false")
+shell.run("set motd.enable false")
+os.pullEvent = os.pullEventRaw
+_G.url = "http://create-os-testing.test"
 
 local function check_for_update()
     print("Verification de la mise a jour ...")
 
     local version = settings.get("version") or 0
 
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
-    local body = { path = "Base/startup.lua"}
-    local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_file_version", textutils.serializeJSON(body), header)
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
+        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local body = { path = "Base/startup.lua" }
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file_version",
+        textutils.serializeJSON(body), header)
 
     if not response then
         print(fail_string)
@@ -25,7 +30,8 @@ local function check_for_update()
 
     if json.version > version then
         local body = { path = "Base/startup.lua", version = json.version, get_raw = true }
-        local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_file", textutils.serializeJSON(body), header)
+        local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+            textutils.serializeJSON(body), header)
 
         if not response then
             print(fail_string)
@@ -48,9 +54,7 @@ local function check_for_update()
         print("Pas de mise a jour disponible")
         print("Version actuelle: " .. version)
         print("Version disponible: " .. json.version)
-        read()
     end
-
 end
 
 local function reset_computer()
@@ -74,7 +78,7 @@ local function set_token_by_user()
     print("Bienvenue sur l'ordinateur")
     print("Veuillez entrer le token de l'ordinateur")
     term.write("Token: ")
-    token = read()
+    local token = read()
     settings.set("token", token)
     settings.save()
     term.clear()
@@ -84,19 +88,21 @@ end
 -- On verifie que l'api est accessible
 
 local function is_api_available()
-    local response, fail_string, http_failing_response = http.get("http://create-os-testing.test/api/api_test")
+    local response, fail_string, http_failing_response = http.get(_G.url .. "/api/api_test")
     if not response then
-        return false,fail_string
+        return false, fail_string
     else
         return true
     end
 end
 
 local function verify_computer_availability()
-    local header = { ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local header = { ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] =
+    "create-os-testing.test" }
     local body = { id = os.getComputerID() }
-    local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/verify_computer_availability", textutils.serializeJSON(body), header)
-    
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/verify_computer_availability",
+        textutils.serializeJSON(body), header)
+
     -- if code is 200, then computer is available if its 409 then computer is not available otherwise error
     if response then
         local data = response.readAll()
@@ -124,19 +130,21 @@ local function register_computer(c_name, c_description)
     term.write("Description: ")
     local description = c_description or read()
 
-    local body = { 
+    local body = {
         id = os.getComputerID(),
         name = os.getComputerLabel(),
         description = description
     }
 
-    local header = { 
+    local header = {
         Authorization = "Bearer " .. settings.get("token"),
-        ["Content-Type"] = "application/json", 
-        ["Accept"] = "application/json", 
-        ["Host"] = "create-os-testing.test" }
+        ["Content-Type"] = "application/json",
+        ["Accept"] = "application/json",
+        ["Host"] = "create-os-testing.test"
+    }
 
-    local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/register_computer", textutils.serializeJSON(body), header)
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/register_computer",
+        textutils.serializeJSON(body), header)
 
     if response then
         local data = response.readAll()
@@ -147,7 +155,6 @@ local function register_computer(c_name, c_description)
         end
 
         local json = textutils.unserializeJSON(data)
-        
     else
         print("Erreur: ")
         print(fail_string)
@@ -166,8 +173,27 @@ end
 
 -- Cette fonction permet de telecharger les fichiers de l'ordinateur
 local function initialize_computer()
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
-    -- Chargement des différents modules
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
+        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    -- On récupère la liste des modules
+    local body = { path = "modules" }
+
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_files_list",
+        textutils.serializeJSON(body), header)
+
+    if not response then
+        print(fail_string)
+        print(http_failing_response.getResponseCode())
+        read()
+        os.shutdown()
+    end
+
+    local data = response.readAll()
+    response.close()
+    local json = textutils.unserializeJSON(data)
+    for i = 1, #json.files do
+        print("Telechargement de " .. json.files[i])
+    end
 end
 
 local function main()
@@ -186,15 +212,17 @@ local function main()
     else
         print("L'ordinateur est deja enregistre")
     end
-    
+
     check_for_update()
 
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
-    
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
+        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+
     -- Ici on va charger les différents élements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
-    local body = { path = "Components\\thread_manager.lua"}
-    local response, fail_string, http_failing_response = http.post("http://create-os-testing.test/api/retrieve_file", textutils.serializeJSON(body), header)
+    local body = { path = "Components\\thread_manager.lua" }
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+        textutils.serializeJSON(body), header)
 
     if not response then
         print(fail_string)
@@ -202,12 +230,12 @@ local function main()
         read()
         os.shutdown()
     end
-    
+
     local data = textutils.unserializeJSON(response.readAll())
     response.close()
     local thread_manager = load(data.file.content)().new()
     thread_manager.version = data.file.version
-    thread_manager:addTask(initialize_computer,1)
+    thread_manager:addTask(initialize_computer, 1)
     thread_manager:run()
 
     _G.parallel = thread_manager
