@@ -96,6 +96,13 @@ class FilesController extends Controller
 
         $files = array_values(array_diff(scandir($fullPath), ['.', '..']));
 
+        // Retirer les fichiers cachés
+        $files = array_filter($files, function ($file) {
+            return strpos($file, '.') !== 0;
+        });
+        
+        $files = array_values($files);
+
         return response()->json(['files' => $files], 200);
     }
 

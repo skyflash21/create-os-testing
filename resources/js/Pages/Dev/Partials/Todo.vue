@@ -71,7 +71,7 @@ const moveTaskDown = (index) => {
 
 <template>
   <div>
-    <h2 class="text-lg font-semibold">Todo List</h2>
+    <h2 class="text-lg font-semibold mb-4 text-white">Todo List</h2>
 
     <ul>
       <li v-for="(todo, index) in props.todos" :key="todo.id" class="mb-2">
@@ -84,7 +84,7 @@ const moveTaskDown = (index) => {
     </ul>
 
     <div class="mt-6">
-      <h2 class="text-lg font-semibold">
+      <h2 class="text-lg font-semibold mb-4 text-white">
         {{ editingTask && editingTask.value ? 'Edit Task' : 'Add a New Task' }}
       </h2>
       <form @submit.prevent="handleSubmit">

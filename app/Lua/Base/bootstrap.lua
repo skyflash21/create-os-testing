@@ -197,8 +197,34 @@ local function initialize_computer()
     local data = response.readAll()
     response.close()
     local json = textutils.unserializeJSON(data)
+    local modules = {}
     for i = 1, #json.files do
-        print("Telechargement de " .. json.files[i])
+        local file = json.files[i]
+        local body = { path = "modules/" .. file }
+        local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+            textutils.serializeJSON(body), header)
+
+        if not response then
+            print(fail_string)
+            print(http_failing_response.getResponseCode())
+            read()
+            os.shutdown()
+        end
+
+        local data = textutils.unserializeJSON(response.readAll())
+        response.close()
+
+        if data.file.content then
+            local current_module = load(data.file.content, file, "t", _ENV)
+            if current_module then
+                current_module = current_module()
+                current_module = current_module.new()
+                current_module.version = data.file.version
+                print("OK "..file .. " version: " .. data.file.version)
+            else
+                print("FAIL "..file .. " version: " .. data.file.version)
+            end
+        end
     end
 end
 

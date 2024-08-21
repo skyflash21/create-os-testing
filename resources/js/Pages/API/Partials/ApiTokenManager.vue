@@ -62,6 +62,22 @@ const copyToken = () => {
     }, 2000);
 };
 
+const copyCommand = () => {
+    const commandField = document.getElementById('command_field');
+    const range = document.createRange();
+    range.selectNode(commandField);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    
+    const copyCommandButton = document.getElementById('copy_command_button');
+    copyCommandButton.innerText = 'Commande copiée';
+    setTimeout(() => {
+        copyCommandButton.innerText = 'Copier la commande';
+    }, 2000);
+};
+
 const manageApiTokenPermissions = (token) => {
     updateApiTokenForm.permissions = token.abilities;
     managingPermissionsFor.value = token;
@@ -312,9 +328,21 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                     <p class="text-red-500">Pour votre sécurité, il ne sera plus affiché.<br>Assurez-vous de le copier maintenant.</p>
                 </div>
 
-                <div v-if="$page.props.jetstream.flash.token" class="mt-4 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all" id = "token_field">
-                    {{ $page.props.jetstream.flash.token }}
+                <label class="block font-medium text-sm text-gray-700 dark:text-gray-200 mt-4">Token</label>
+                <div v-if="$page.props.jetstream.flash.token" class=" bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all" id = "token_field">
+                   {{ $page.props.jetstream.flash.token }}
                 </div>
+                <PrimaryButton @click="copyToken" id="copy_token_button" class="ms-auto bg-gray-800 text-white">
+                    Copier le token
+                </PrimaryButton>
+
+                <label class="block font-medium text-sm text-gray-700 dark:text-gray-200 mt-4">Commande wget</label>
+                <div v-if="$page.props.jetstream.flash.token" class=" bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all" id = "command_field">
+                    wget run http://create-os-testing.test/api/startup {{ $page.props.jetstream.flash.token }}
+                </div>
+                <PrimaryButton @click="copyCommand" id="copy_command_button" class="ms-auto bg-gray-800 text-white">
+                    Copier la commande
+                </PrimaryButton>
             </template>
 
             <template #footer>
@@ -322,9 +350,6 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
                     Fermer
                 </SecondaryButton>
 
-                <PrimaryButton @click="copyToken" class="ms-3" id="copy_token_button">
-                    Copier le token
-                </PrimaryButton>
             </template>
         </DialogModal>
 

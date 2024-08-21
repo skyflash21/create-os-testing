@@ -50,10 +50,10 @@ console.log('Computers:', props.computers);
 
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold mb-6 border-b pb-2">Computers Manager</h1>
+    <h1 class="text-2xl font-bold mb-6 border-b pb-2 text-white">Computers Manager</h1>
 
     <!-- Display existing computers with their associated tokens -->
-    <div v-if="computers.length > 0" class="space-y-4 border p-4 rounded-md shadow-md">
+    <div v-if="computers.length > 0" class="space-y-4 border p-4 rounded-md shadow-md mb-6 bg-gray-800 text-white">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2">Existing Computers</h2>
       <div
         v-for="computer in computers"
@@ -77,7 +77,7 @@ console.log('Computers:', props.computers);
 
     <!-- Form to add a new computer -->
     <div class="mt-6 border p-4 rounded-md shadow-md">
-      <h2 class="text-lg font-semibold mb-4 border-b pb-2">Add a New Computer</h2>
+      <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Add a New Computer</h2>
       <form @submit.prevent="handleSubmit">
         <div class="mb-4">
           <InputLabel for="personal_access_token_id" value="Personal Access Token ID" />

@@ -24,7 +24,7 @@ function module.new()
     local self = setmetatable({}, module)
 
     -- Initialisation des variables obligatoires
-    self.name = "websocket" -- nom du module (doit être unique)
+    self.name = "sample" -- nom du module (doit être unique)
     self.session_id = 0 -- id de la session courante
     self.version = nil -- version du module
 

@@ -25,6 +25,8 @@ const switchToTeam = (team) => {
 const logout = () => {
     router.post(route('logout'));
 };
+
+const iconUrl = ref('/storage/images/app_icon.jpg');
 </script>
 
 <template>
@@ -42,7 +44,7 @@ const logout = () => {
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationMark class="block h-9 w-auto" />
+                                    <img :src="iconUrl" class="block h-9 w-auto" alt="Application Logo" />
                                 </Link>
                             </div>
 
@@ -66,6 +68,11 @@ const logout = () => {
                         </div>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
+                            
+                            <label for="dark-mode" class="flex items-center cursor-pointer ms-3 text-gray-400 dark:text-gray-300">
+                                Role : {{ $page.props.auth.user.role }}
+                            </label>
+
                             <div class="ms-3 relative">
                                 <!-- Teams Dropdown -->
                                 <Dropdown v-if="$page.props.jetstream.hasTeamFeatures" align="right" width="60">
