@@ -40,6 +40,7 @@ end
     @return string
 ]]
 local function get(path,additional_header)
+    additional_header = additional_header or {}
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
 
     -- On ajoute les headers passés en paramètre
@@ -70,6 +71,7 @@ end
     @return string
 ]]
 local function post(path,body,additional_header)
+    additional_header = additional_header or {}
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
 
     -- On ajoute les headers passés en paramètre

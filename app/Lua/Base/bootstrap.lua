@@ -208,13 +208,35 @@ local function initialize_computer()
         if executed_code then
             local current_module = executed_code.new()
             current_module.version = version
-            current_module:init()
             table.insert(modules, current_module)
             print("OK "..file .. " version: " .. version)
         else
             print("FAIL "..file .. " version: " .. version)
         end
     end
+
+    print("Fin de la sequence de chargement des modules")
+    print("Initialisation")
+    for i = 1, #modules do
+        modules[i]:init()
+    end
+    print("Fin de l'initialisation")
+    print("Ajout des modules dans le gestionnaire de thread")
+    for i = 1, #modules do
+        _G.parallel:loadModule(modules[i].name, modules[i].version, modules[i])
+    end
+    print("Fin de l'ajout des modules dans le gestionnaire de thread")
+    print("Verification de la sequence d'initialisation")
+
+    local parallel_status = parallel.running
+    if parallel_status then term.setTextColor(colors.green)
+    else term.setTextColor(colors.red) end
+    print("Parallel status: " .. tostring(parallel_status))
+    term.setTextColor(colors.white)
+
+    print("Fin de la verification de la sequence d'initialisation")
+    
+    print("Envoie du signal au gestionnaires de la console.")
 end
 
 local function main()
@@ -240,7 +262,7 @@ local function main()
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
         ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
 
-    -- Ici on va charger les différents élements de l'ordinateur
+    -- Ici on va charger les differents elements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
     local body = { path = "Components\\thread_manager.lua" }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
@@ -256,11 +278,11 @@ local function main()
     local data = textutils.unserializeJSON(response.readAll())
     response.close()
     local thread_manager = load(data.file.content, "thread_manager", "t", _ENV)().new()
+    _G.parallel = thread_manager
     thread_manager.version = data.file.version
     thread_manager:addTask(initialize_computer, 1)
     thread_manager:run()
 
-    _G.parallel = thread_manager
 end
 
 main()
