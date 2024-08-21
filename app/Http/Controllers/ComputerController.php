@@ -131,12 +131,14 @@ class ComputerController extends Controller
      * @param Request $request
      * @return json
      */
-    public function verifyComputerAvailable(Request $request)
+    public function verifyComputerAvailability(Request $request)
     {
-        // check if the computer already exists
+        // check if the computer already exists, if it does return "available" = false and the computer data
         if (Computer::where('id', $request->id)->exists()) {
-            return response()->json(['available' => false], 200);
-        } else {
+            $computer = Computer::where('id', $request->id)->first();
+            return response()->json(['available' => false, 'created_at' => $computer->created_at], 200);
+        }else
+        {
             return response()->json(['available' => true], 200);
         }
     }

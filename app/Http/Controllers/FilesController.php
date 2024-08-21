@@ -8,8 +8,8 @@ use App\Models\Files;
 class FilesController extends Controller
 {
     const DEFAULT_LUA_DIRECTORY = 'app\\Lua\\';
-    const STARTUP_FILE = 'startup.lua';
-    const BOOTSTRAP_FILE = 'bootstrap.lua';
+    const STARTUP_FILE = 'Base\\startup.lua';
+    const BOOTSTRAP_FILE = 'Base\\bootstrap.lua';
 
     /**
      * Récupérer un fichier dans un répertoire.
@@ -198,6 +198,7 @@ class FilesController extends Controller
         $file->path = $filePath;
         $file->version = $newVersion;
         $file->size = strlen($content);
+        $file->name = basename($filePath);
         $file->save();
 
         return $file;

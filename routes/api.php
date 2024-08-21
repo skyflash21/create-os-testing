@@ -32,10 +32,11 @@ Route::middleware([
     // Routes pour les ordinateurs
     Route::controller(ComputerController::class)->group(function () {
         Route::post('/register_computer', 'registerComputer');
-        Route::post('/verify_computer_availability', 'verifyComputerAvailable');
     });
 });
 
 // Route pour récupérer le fichier de démarrage (startup)
 Route::get('/startup', [FilesController::class, 'retrieveStartupFile']);
 Route::get('/bootstrap', [FilesController::class, 'retrieveBootstrapFile']);
+
+Route::post('/verify_computer_availability', [ComputerController::class, 'verifyComputerAvailability']);

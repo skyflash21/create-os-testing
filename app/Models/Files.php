@@ -10,6 +10,6 @@ class Files extends Model
     use HasFactory;
 
     // Ajout des attributs protégés si nécessaire
-    protected $fillable = ['content', 'version', 'hash', 'path'];
+    protected $fillable = ['content', 'version', 'hash', 'path', 'size', 'name'];
 
 }

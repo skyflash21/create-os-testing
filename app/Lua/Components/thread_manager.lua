@@ -46,9 +46,6 @@ function Thread_manager:waitforAll(tasks, priority)
     os.queueEvent("waitforAll")
     while remaining_tasks > 0 do
         coroutine.yield()
-        term.clear()
-        term.setCursorPos(1, 1) 
-        print("remaining ".. remaining_tasks .. "\ncoroutines " .. #self.coroutines .. "\nrunning " .. self.current_task_running .. "\ntoadd " .. #self.toAdd)
     end
 end
 
@@ -69,6 +66,7 @@ end
 function Thread_manager:run()
     local tFilters = {}
     local eventData = { n = 0 }
+    print("Thread_manager:run")
     
     while true do
         self:checkToAdd()

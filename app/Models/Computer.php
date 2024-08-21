@@ -10,7 +10,7 @@ class Computer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['id','personal_access_token_id', 'name', 'description'];
+    protected $fillable = ['id','personal_access_token_id', 'name', 'description', 'created_at', 'updated_at'];
 
     public function personalAccessToken()
     {
