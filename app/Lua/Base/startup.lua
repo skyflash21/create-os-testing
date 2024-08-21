@@ -4,6 +4,19 @@ os.pullEvent = os.pullEventRaw
 
 _G.url = "http://create-os-testing.test"
 
+local args = {...}
+_ENV.start_args = {}
+
+if #args == 3 then
+    -- Vérification que les arguments sont bon
+    if type(args[1]) ~= "string" or type(args[2]) ~= "string" or type(args[3]) ~= "string" then
+        print("Error: Invalid arguments")
+        read()
+        os.shutdown()
+    end
+    _ENV.start_args = { token = args[1], name = args[2], description = args[3] }
+end
+
 local response, http_failing_response = http.get(_G.url .. "/api/startup");
 
 if response then

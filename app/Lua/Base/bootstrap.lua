@@ -72,7 +72,13 @@ local function reset_computer()
 end
 
 -- On va commencer par demander le token a l'utilisateur
-local function set_token_by_user()
+local function set_token_by_user(c_token)
+    if c_token then
+        settings.set("token", c_token)
+        settings.save()
+        return
+    end
+    
     term.clear()
     term.setCursorPos(1, 1)
     print("Bienvenue sur l'ordinateur")
@@ -198,17 +204,18 @@ end
 
 local function main()
     if verify_computer_availability() then
+        reset_computer()
         print("L'ordinateur n'est pas enregistre")
         sleep(1)
         if not settings.get("token") then
-            set_token_by_user()
+            set_token_by_user(_ENV.start_args.token)
         end
         if not is_api_available() then
             print("L'api n'est pas disponible.")
             read()
             os.shutdown()
         end
-        register_computer()
+        register_computer(_ENV.start_args.name, _ENV.start_args.description)
     else
         print("L'ordinateur est deja enregistre")
     end
