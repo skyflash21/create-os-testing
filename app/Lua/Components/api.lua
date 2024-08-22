@@ -119,7 +119,8 @@ local function get_code(path, crash_if_error)
     end
 
     local code = data.file.content
-    local code_loaded, err = load(code, path, "t", _ENV)
+    local filename = string.match(path, "[^/]+$")
+    local code_loaded, err = load(code, filename, "t", _ENV)
 
     if code_loaded == nil then
         if crash_if_error then show_code_loading_error(err, nil, path, err) end

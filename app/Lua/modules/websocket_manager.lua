@@ -73,10 +73,9 @@ function module:run(current_session_id)
             self:handle_websocket_message(arg1)
         end
 
-        print("Module websocket: " .. event .. " " .. arg1 .. " " .. arg2 .. " " .. arg3)
 
         -- Gestion des événements inhérents au module
-
+        
     end
 end
 

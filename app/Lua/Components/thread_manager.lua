@@ -18,6 +18,10 @@ function Thread_manager.new()
     self.session_id = 0
     self.running = false
 
+    for i = 1, self.parallel_coroutines_limit do
+        self.coroutines[i] = {}
+    end
+
     return self
 end
 
@@ -28,14 +32,16 @@ end
 --[[
     Add a task to the thread manager
     @param task: function
-    @param priority: number
 ]]
 function Thread_manager:addTask(task)
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:addTask(task)", 2)
+    end
     if type(task) ~= "function" then error("Task must be a function", 2) end
 
     self.current_task_id = self.current_task_id + 1
     local task_id = self.current_task_id
-    table.insert(self.toAdd, coroutine.create(task))
+    table.insert(self.toAdd, { coroutine.create(task), task_id})
 
     return task_id
 end
@@ -45,6 +51,9 @@ end
     @param task_id: number
 ]]
 function Thread_manager:stopTask(task_id)
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:stopTask(task_id)", 2)
+    end
     if type(task_id) ~= "number" then error("Task id must be a number", 2) end
 
     -- Check if the task is in the toAdd list
@@ -56,9 +65,9 @@ function Thread_manager:stopTask(task_id)
     end
 
     -- Check if the task is in the coroutines list
-    for i = 1, #self.coroutines do
+    for i = 1, self.parallel_coroutines_limit do
         if self.coroutines[i][2] == task_id then
-            table.remove(self.coroutines, i)
+            self.coroutines[i] = {}
             return
         end
     end
@@ -67,11 +76,12 @@ end
 --[[
     Wait for a task to finish
     @param task: function
-    @param priority: number
 ]]
-function Thread_manager:waitforAll(tasks, priority)
+function Thread_manager:waitforAll(tasks)
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:waitforAll(tasks)", 2)
+    end
     if type(tasks) ~= "table" then error("Tasks must be a table", 2) end
-    if type(priority) ~= "number" then error("Priority must be a number", 2) end
 
     local remaining_tasks = 0
     for i = 1, #tasks do
@@ -81,12 +91,13 @@ function Thread_manager:waitforAll(tasks, priority)
         local temp_func = function()
             tasks[i]()
             remaining_tasks = remaining_tasks - 1
+            os.queueEvent("t_done")
         end
         remaining_tasks = remaining_tasks + 1
-        table.insert(self.toAdd, { coroutine.create(temp_func), task_id, priority })
+        table.insert(self.toAdd, { coroutine.create(temp_func), task_id})
     end
 
-    os.queueEvent("waitforAll")
+
     while remaining_tasks > 0 do
         coroutine.yield()
     end
@@ -95,25 +106,28 @@ end
 --[[
     Wait for a task to finish
     @param task: function
-    @param priority: number
 ]]
-function Thread_manager:waitfor(task, priority)
+function Thread_manager:waitfor(task)
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:waitfor(task)", 2)
+    end
     if type(task) ~= "function" then error("Task must be a function", 2) end
-    if type(priority) ~= "number" then error("Priority must be a number", 2) end
 
     self.current_task_id = self.current_task_id + 1
     local task_id = self.current_task_id
+
+    local done = false
+
     local temp_func = function()
         task()
-        os.queueEvent("waitfor", task_id)
+        done = true
+        os.queueEvent("t_done")
     end
-    table.insert(self.toAdd, { coroutine.create(temp_func), task_id, priority })
-    os.queueEvent("waitfor")
-    while true do
-        local event, id = os.pullEvent()
-        if event == "waitfor" and id == task_id then
-            break
-        end
+    table.insert(self.toAdd, { coroutine.create(temp_func), task_id})
+
+    os.queueEvent("waitfor", task_id)
+    while not done do
+        coroutine.yield()
     end
 end
 
@@ -128,6 +142,9 @@ end
     @param module : module (object)
 ]]
 function Thread_manager:loadModule(module_name, version, module)
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:loadModule(module_name, version, module)", 2)
+    end
     if type(module_name) ~= "string" then error("Module must be a string", 2) end
     if type(version) ~= "number" then error("Version must be a number", 2) end
     if type(module) ~= "table" then error("Module must be a table", 2) end
@@ -152,8 +169,16 @@ function Thread_manager:checkToAdd()
     end
 
     while #self.toAdd > 0 and self.current_task_running < self.parallel_coroutines_limit do
-        local next_task = table.remove(self.toAdd, 1)
-        table.insert(self.coroutines, next_task)
+        for i = 1, self.parallel_coroutines_limit do
+            if self.coroutines[i] == nil then
+                error("self.coroutines["..i.."] is nil")
+            end
+            if #self.coroutines[i] == 0 then
+                local next_task = table.remove(self.toAdd, 1)
+                self.coroutines[i] = next_task
+                break
+            end
+        end
         self.current_task_running = self.current_task_running + 1
     end
 end
@@ -182,6 +207,9 @@ end
 ------------------------------------------------[Main]------------------------------------------------
 
 function Thread_manager:run()
+    if self == nil then
+        error("La fonction doit être appelée avec le format : parallel:run()", 2)
+    end
     self.running = true
     local tFilters = {}
     local eventData = { n = 0 }
@@ -196,23 +224,23 @@ function Thread_manager:run()
 
             -- Pour chaque coroutine en cours
             for i = #self.coroutines, 1, -1 do
-                local r = self.coroutines[i]
+                if #self.coroutines[i] ~= 0 then
+                    local r = self.coroutines[i][1]
 
-                if r and (tFilters[r] == nil or tFilters[r] == eventData[1] or eventData[1] == "terminate") then
-                    local ok, param = coroutine.resume(r, table.unpack(eventData, 1, eventData.n))
-                    if not ok then
-                        error(param, 0)
-                    else
-                        tFilters[r] = param
-                    end
-                    if coroutine.status(r) == "dead" then
-                        table.remove(self.coroutines, i)
-                        living = living - 1
+                    if r and (tFilters[r] == nil or tFilters[r] == eventData[1] or eventData[1] == "terminate") then
+                        local ok, param = coroutine.resume(r, table.unpack(eventData, 1, eventData.n))
+                        if not ok then
+                            error(param, 0)
+                        else
+                            tFilters[r] = param
+                        end
+                        if coroutine.status(r) == "dead" then
+                            self.coroutines[i] = {}
+                            living = living - 1
+                        end
                     end
                 end
             end
-
-            self.current_task_running = living
 
             -- Pour chaque coroutine en cours
             for i = #self.modules, 1, -1 do
@@ -233,8 +261,12 @@ function Thread_manager:run()
                     end
                 end
             end
+
+            self.current_task_running = living
+
             eventData = table.pack(os.pullEventRaw())
         end
+        
         if self.running == false then
             os.sleep(1)
         end
