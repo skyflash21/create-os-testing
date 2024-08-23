@@ -69,8 +69,5 @@ class JetstreamServiceProvider extends ServiceProvider
             // Administrator permission
             'computer_os:view_team_computer'
         ])->description('Administrator users can perform any action.');
-
-        Jetstream::role('editor', 'Editor', [
-        ])->description('Editor users have the ability to read, create, and update.');
     }
 }

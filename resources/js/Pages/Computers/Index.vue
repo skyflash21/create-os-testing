@@ -4,7 +4,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 
 // Get props from the server-side
 const props = defineProps({
-  computers: Array
+  computers: Array,
+  userRole: String // Add userRole prop
 });
 </script>
 
@@ -17,7 +18,9 @@ const props = defineProps({
         </template>
 
         <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-            <ComputerManager :computers="props.computers" />
+            <ComputerManager :computers="props.computers" :userRole="props.userRole" />
         </div>
+
+        
     </AppLayout>
 </template>

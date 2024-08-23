@@ -338,7 +338,7 @@ const imageUrl = ref('/storage/images/computer_craft_token.png');
 
                 <label class="block font-medium text-sm text-gray-700 dark:text-gray-200 mt-4">Commande wget</label>
                 <div v-if="$page.props.jetstream.flash.token" class=" bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded font-mono text-sm text-gray-500 break-all" id = "command_field">
-                    wget run http://create-os-testing.test/api/startup {{ $page.props.jetstream.flash.token }}
+                    wget run http://127.0.0.1:8000/api/startup {{ $page.props.jetstream.flash.token }}
                 </div>
                 <PrimaryButton @click="copyCommand" id="copy_command_button" class="ms-auto bg-gray-800 text-white">
                     Copier la commande

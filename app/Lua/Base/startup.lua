@@ -2,7 +2,8 @@ shell.run("set shell.allow_disk_startup false")
 shell.run("set motd.enable false")
 os.pullEvent = os.pullEventRaw
 
-_G.url = "http://create-os-testing.test"
+_G.url = "http://127.0.0.1:8000"
+_G.host = "localhost"
 
 local args = {...}
 _ENV.start_args = {}
@@ -49,6 +50,7 @@ if not is_api_available() then
 
         center_print("503 Service Unavailable", 5)
         center_print("Impossible de contacter l'API", 7)
+        center_print(_G.url .. "/api/api_test", 9)
         center_print("Veuillez contacter Skyflash21", 15)
         center_print("Discord : skyflash21", 16)
 

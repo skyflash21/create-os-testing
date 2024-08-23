@@ -25,8 +25,6 @@ const switchToTeam = (team) => {
 const logout = () => {
     router.post(route('logout'));
 };
-
-const iconUrl = ref('/storage/images/app_icon.jpg');
 </script>
 
 <template>
@@ -44,7 +42,7 @@ const iconUrl = ref('/storage/images/app_icon.jpg');
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
                                 <Link :href="route('dashboard')">
-                                    <img :src="iconUrl" class="block h-9 w-auto" alt="Application Logo" />
+                                    <ApplicationMark class="block h-9 w-auto" />
                                 </Link>
                             </div>
 
@@ -53,26 +51,13 @@ const iconUrl = ref('/storage/images/app_icon.jpg');
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Dashboard
                                 </NavLink>
-                                <NavLink :href="route('api-tokens.index')" :active="route().current('api-tokens.index')">
-                                    API Tokens
-                                </NavLink>
                                 <NavLink :href="route('computers.index')" :active="route().current('computers.index')">
                                     Computers
                                 </NavLink>
-                                <NavLink :href="route('todo.index')" :active="route().current('todo.index')">
-                                    Todo
-                                </NavLink>
-
                             </div>
-                            
                         </div>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
-                            
-                            <label for="dark-mode" class="flex items-center cursor-pointer ms-3 text-gray-400 dark:text-gray-300">
-                                Role : {{ $page.props.auth.user.role }}
-                            </label>
-
                             <div class="ms-3 relative">
                                 <!-- Teams Dropdown -->
                                 <Dropdown v-if="$page.props.jetstream.hasTeamFeatures" align="right" width="60">

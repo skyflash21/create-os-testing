@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Files;
+use App\Models\File;
 
-class FilesController extends Controller
+class FileController extends Controller
 {
     const DEFAULT_LUA_DIRECTORY = 'app\\Lua\\';
     const STARTUP_FILE = 'Base\\startup.lua';
@@ -25,9 +25,9 @@ class FilesController extends Controller
         $version = $request->input('version', null);
 
         if ($version) {
-            $fileRecord = Files::where('path', $fullPath)->where('version', $version)->first();
+            $fileRecord = File::where('path', $fullPath)->where('version', $version)->first();
         } else {
-            $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+            $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
         }
         
         if (!$fileRecord) {
@@ -58,7 +58,7 @@ class FilesController extends Controller
         $relativePath = $request->input('path', '');
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
 
-        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
         $file_changed = false;
 
         if (!$fileRecord) {
@@ -94,16 +94,16 @@ class FilesController extends Controller
             return response()->json(['error' => "Le répertoire $relativePath n'existe pas"], 404);
         }
 
-        $files = array_values(array_diff(scandir($fullPath), ['.', '..']));
+        $file = array_values(array_diff(scandir($fullPath), ['.', '..']));
 
         // Retirer les fichiers cachés
-        $files = array_filter($files, function ($file) {
+        $file = array_filter($file, function ($file) {
             return strpos($file, '.') !== 0;
         });
         
-        $files = array_values($files);
+        $file = array_values($file);
 
-        return response()->json(['files' => $files], 200);
+        return response()->json(['files' => $file], 200);
     }
 
     /**
@@ -122,7 +122,7 @@ class FilesController extends Controller
 
         // check if the file has changed
         $content = $this->getFileContent($fullPath);
-        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
         if (!$fileRecord) {
             $fileRecord = $this->storeNewFile($fullPath, $content);
         } else {
@@ -150,7 +150,7 @@ class FilesController extends Controller
 
         // check if the file has changed
         $content = $this->getFileContent($fullPath);
-        $fileRecord = Files::where('path', $fullPath)->orderBy('version', 'desc')->first();
+        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
         if (!$fileRecord) {
             $fileRecord = $this->storeNewFile($fullPath, $content);
         } else {
@@ -194,12 +194,12 @@ class FilesController extends Controller
      * @param string $filePath
      * @param string $content
      * @param int|null $currentVersion
-     * @return Files
+     * @return File
      */
-    protected function storeNewFile(string $filePath, string $content, ?int $currentVersion = null): Files
+    protected function storeNewFile(string $filePath, string $content, ?int $currentVersion = null): File
     {
         $newVersion = $currentVersion ? $currentVersion + 1 : 1;
-        $file = new Files();
+        $file = new File();
         $file->content = $content;
         $file->hash = hash('sha256', $content);
         $file->path = $filePath;
@@ -225,10 +225,10 @@ class FilesController extends Controller
     /**
      * Retourner une réponse JSON avec les informations du fichier.
      * 
-     * @param Files $file
+     * @param File $file
      * @return \Illuminate\Http\JsonResponse
      */
-    protected function sendFileResponse(Files $file)
+    protected function sendFileResponse(File $file)
     {
         return response()->json([
             'file' => [

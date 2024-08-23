@@ -47,7 +47,7 @@ const selectNewPhoto = () => {
 const updatePhotoPreview = () => {
     const photo = photoInput.value.files[0];
 
-    if (! photo) return;
+    if (!photo) return;
 
     const reader = new FileReader();
 
@@ -100,7 +100,7 @@ const clearPhotoFileInput = () => {
                 <InputLabel for="photo" value="Photo" />
 
                 <!-- Current Profile Photo -->
-                <div v-show="! photoPreview" class="mt-2">
+                <div v-show="!photoPreview" class="mt-2">
                     <img :src="user.profile_photo_url" :alt="user.name" class="rounded-full h-20 w-20 object-cover">
                 </div>
 
@@ -139,7 +139,7 @@ const clearPhotoFileInput = () => {
                     required
                     autocomplete="name"
                 />
-                <InputError :message="form.errors.name" class="mt-2" />
+                <InputError :message="form.errors.name" class="mt-2 text-red-600" v-html="form.errors.name"/>
             </div>
 
             <!-- Email -->

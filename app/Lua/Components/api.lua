@@ -41,7 +41,7 @@ end
 ]]
 local function get(path,additional_header)
     additional_header = additional_header or {}
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = _G.host }
 
     -- On ajoute les headers passés en paramètre
     for key, value in pairs(additional_header) do
@@ -49,8 +49,6 @@ local function get(path,additional_header)
     end
 
     local response, fail_string, http_failing_response = http.get(_G.url.. "/api/"..path, header)
-
-    print("http://".._G.url.. "/api/"..path)
 
     if not response then
         check_api_status()
@@ -72,7 +70,7 @@ end
 ]]
 local function post(path,body,additional_header)
     additional_header = additional_header or {}
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = _G.host }
 
     -- On ajoute les headers passés en paramètre
     for key, value in pairs(additional_header) do

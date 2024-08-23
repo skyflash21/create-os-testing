@@ -2,28 +2,22 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\FilesController;
+
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\ComputerController;
 
-// Route pour récupérer l'utilisateur authentifié
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-// Route pour tester l'API
-Route::get('/api_test', function () {
-    return response()->json(['message' => 'API test successful']);
-});
-
-// Routes protégées par l'authentification
+// Groupe de Routes protégées par l'authentification
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
 
+    // Route pour récupérer les informations de l'utilisateur connecté
+    Route::get('/user', function (Request $request) { return $request->user(); });
+    
     // Routes pour les fichiers
-    Route::controller(FilesController::class)->group(function () {
+    Route::controller(FileController::class)->group(function () {
         Route::post('/retrieve_file', 'retrieveFile');
         Route::post('/retrieve_file_version', 'retrieveFileVersion');
         Route::post('/retrieve_files_list', 'retrieveFilesList');
@@ -33,10 +27,18 @@ Route::middleware([
     Route::controller(ComputerController::class)->group(function () {
         Route::post('/register_computer', 'registerComputer');
     });
+
+    Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+
+    // Protéger la route de mise à jour des ordinateurs
 });
 
-// Route pour récupérer le fichier de démarrage (startup)
-Route::get('/startup', [FilesController::class, 'retrieveStartupFile']);
-Route::get('/bootstrap', [FilesController::class, 'retrieveBootstrapFile']);
-
+// Groupe de Routes non protégées par l'authentification
+Route::get('/startup', [FileController::class, 'retrieveStartupFile']);
+Route::get('/bootstrap', [FileController::class, 'retrieveBootstrapFile']);
 Route::post('/verify_computer_availability', [ComputerController::class, 'verifyComputerAvailability']);
+
+// Route pour tester l'API
+Route::get('/api_test', function () {
+    return response()->json(['message' => 'API test successful']);
+});

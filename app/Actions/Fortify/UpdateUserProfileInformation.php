@@ -3,11 +3,9 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class UpdateUserProfileInformation implements UpdatesUserProfileInformation
 {
@@ -16,35 +14,62 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      *
      * @param  array<string, mixed>  $input
      */
-    public function update(User $user, array $input): void
+    public function update($user, array $input)
     {
         Validator::make($input, [
-            'name' => ['required', 'string', 'max:255', 'unique:users,name,' . $user->id],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'photo' => ['nullable', 'mimes:jpg,jpeg,png', 'max:1024'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
         ])->validateWithBag('updateProfileInformation');
 
-        // Vérifier si le nom peut être modifié (toutes les 24 heures)
-        if ($user->last_name_change_at && Carbon::parse($user->last_name_change_at)->addDay()->isFuture()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'name' => 'Vous ne pouvez changer votre nom qu\'une fois toutes les 24 heures.',
-            ])->errorBag('updateProfileInformation');
-        }
+        if ($user->name !== $input['name']) {
+            // Vérifie si la dernière mise à jour du nom a eu lieu il y a moins de 24 heures
+            if ($user->name_updated_at && (strtotime($user->name_updated_at) > strtotime('-1 day'))) {
+                // Calculer le temps restant
+                $timeRemaining = strtotime($user->name_updated_at) - strtotime('-1 day');
+                $formattedTime = $this->formatRemainingTime($timeRemaining);
 
-        if (isset($input['photo'])) {
-            $user->updateProfilePhoto($input['photo']);
-        }
+                throw ValidationException::withMessages([
+                    'name' => "Vous ne pouvez modifier votre nom qu'une seule fois par jour.<br>" . $formattedTime . ' restant.',
+                ])->errorBag('updateProfileInformation');
+            }
 
-        if ($input['email'] !== $user->email &&
-            $user instanceof MustVerifyEmail) {
-            $this->updateVerifiedUser($user, $input);
-        } else {
             $user->forceFill([
                 'name' => $input['name'],
-                'email' => $input['email'],
-                'last_name_change_at' => now(), // Met à jour la date de la dernière modification du nom
+                'name_updated_at' => now(),
             ])->save();
         }
+
+        if ($user->email !== $input['email']) {
+            $user->forceFill([
+                'email' => $input['email'],
+            ])->save();
+        }
+    }
+
+    /**
+     * Format remaining time to human readable format.
+     *
+     * @param mixed $time
+     * @return string
+     */
+    private function formatRemainingTime($time)
+    {
+        $hours = floor($time / 3600);
+        $minutes = floor(($time % 3600) / 60);
+        $seconds = $time % 60;
+
+        $formattedTime = '';
+        if ($hours > 0) {
+            $formattedTime .= $hours . ' heure' . ($hours > 1 ? 's' : '') . ' ';
+        }
+        if ($minutes > 0) {
+            $formattedTime .= $minutes . ' minute' . ($minutes > 1 ? 's' : '') . ' ';
+        }
+        if ($seconds > 0 || $formattedTime === '') {
+            $formattedTime .= $seconds . ' seconde' . ($seconds > 1 ? 's' : '');
+        }
+
+        return trim($formattedTime);
     }
 
     /**
@@ -58,7 +83,6 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'name' => $input['name'],
             'email' => $input['email'],
             'email_verified_at' => null,
-            'last_name_change_at' => now(), // Met à jour la date de la dernière modification du nom
         ])->save();
 
         $user->sendEmailVerificationNotification();

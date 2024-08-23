@@ -2,7 +2,8 @@
 shell.run("set shell.allow_disk_startup false")
 shell.run("set motd.enable false")
 os.pullEvent = os.pullEventRaw
-_G.url = "http://create-os-testing.test"
+_G.url = "http://127.0.0.1:8000"
+_G.host = "localhost"
 
 local function check_for_update()
     print("Verification de la mise a jour ...")
@@ -10,7 +11,7 @@ local function check_for_update()
     local version = settings.get("version") or 0
 
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
-        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+        ["Accept"] = "application/json", ["Host"] = _G.host }
     local body = { path = "Base/startup.lua" }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file_version",
         textutils.serializeJSON(body), header)
@@ -104,7 +105,7 @@ end
 
 local function verify_computer_availability()
     local header = { ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] =
-    "create-os-testing.test" }
+    _G.host }
     local body = { id = os.getComputerID() }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/verify_computer_availability",
         textutils.serializeJSON(body), header)
@@ -136,17 +137,47 @@ local function register_computer(c_name, c_description)
     term.write("Description: ")
     local description = c_description or read()
 
+    local type = nil
+    if turtle then
+        type = "turtle"
+    elseif pocket then
+        type = "pocket"
+    else
+        type = "computer"
+    end
+
+    local wireless_modem_side = "none"
+    local modems_found = peripheral.find("modem")
+
+    if modems_found then
+        for i = 1, #modems_found do
+            if modems_found[i].isWireless() then
+                wireless_modem_side = peripheral.getName(modems_found[i])
+                break
+            end
+        end
+    else
+        wireless_modem_side = "none"
+    end
+    
+    local used_disk_space = fs.getCapacity("/")-fs.getFreeSpace("/")
+
     local body = {
         id = os.getComputerID(),
         name = os.getComputerLabel(),
-        description = description
+        description = description,
+        type = type,
+        wireless_modem_side = wireless_modem_side,
+        is_advanced = term.isColor(),
+        total_disk_space = fs.getCapacity("/"),
+        used_disk_space = used_disk_space
     }
 
     local header = {
         Authorization = "Bearer " .. settings.get("token"),
         ["Content-Type"] = "application/json",
         ["Accept"] = "application/json",
-        ["Host"] = "create-os-testing.test"
+        ["Host"] = _G.host
     }
 
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/register_computer",
@@ -172,6 +203,12 @@ local function register_computer(c_name, c_description)
         else
             print("Erreur in data: " .. data)
         end
+
+        -- save in file
+        local file = fs.open("error.txt", "w")
+        file.write(data)
+        file.close()
+
         read()
         os.shutdown()
     end
@@ -180,7 +217,7 @@ end
 -- Cette fonction permet de telecharger les fichiers de l'ordinateur
 local function initialize_computer()
     
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = _G.host }
     local body = { path = "Components\\api.lua" }
 
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
@@ -197,7 +234,10 @@ local function initialize_computer()
     response.close()
     _G.api = load(data.file.content, "api", "t", _ENV)()
 
-    local data = api.post("retrieve_files_list",{ path = "Modules" })
+    local data, fail_string, http_failing_respons = api.post("retrieve_files_list",{ path = "Modules" })
+    if not data then
+        error("Impossible de recuperer la liste des modules, " .. fail_string)
+    end
     local json = textutils.unserializeJSON(data)
     local modules = {}
     for i = 1, #json.files do
@@ -255,12 +295,15 @@ local function main()
         register_computer(_ENV.start_args.name, _ENV.start_args.description)
     else
         print("L'ordinateur est deja enregistre")
+        if settings.get("token") == nil then
+            set_token_by_user()
+        end
     end
 
     check_for_update()
 
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
-        ["Accept"] = "application/json", ["Host"] = "create-os-testing.test" }
+        ["Accept"] = "application/json", ["Host"] = _G.host }
 
     -- Ici on va charger les differents elements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
