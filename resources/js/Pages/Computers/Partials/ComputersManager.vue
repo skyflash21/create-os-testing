@@ -7,12 +7,14 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import CustomButton from '@/Components/CustomButton.vue';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'; // Import your modal component
 
 const props = defineProps({
   computers: Array,
 });
 
 const selectedComputer = ref(null);
+const showModal = ref(false); // State to control the visibility of the confirmation modal
 
 const form = useForm({
   _method: 'PUT',
@@ -44,17 +46,26 @@ const handleSubmit = () => {
   });
 };
 
-const handleDelete = () => {
-  if (confirm('Are you sure you want to delete this computer?')) {
-    deleteForm.delete(route('computers.destroy', form.id), {
-      onSuccess: () => {
-        selectedComputer.value = null;
-      },
-      onError: () => {
-        console.error('Delete request error:', deleteForm.errors);
-      },
-    });
-  }
+const initiateDelete = () => {
+  showModal.value = true; // Show the confirmation modal
+};
+
+const confirmDelete = () => {
+  deleteForm.delete(route('computers.destroy', form.id), {
+    onSuccess: () => {
+      selectedComputer.value = null;
+      props.computers = props.computers.filter(computer => computer.computer_id !== form.id);
+      form.reset();
+      showModal.value = false; // Hide the confirmation modal
+    },
+    onError: () => {
+      console.error('Form submission error:', deleteForm.errors);
+    },
+  });
+};
+
+const cancelDelete = () => {
+  showModal.value = false; // Hide the confirmation modal
 };
 
 // State for sorting
@@ -183,7 +194,7 @@ const getButtonClass = (key) => {
 <template>
   <div class="flex h-screen p-6 bg-gray-900">
     <!-- Liste des ordinateurs -->
-    <div class="w-1/2 p-2 border-r bg-gray-800 rounded-lg ">
+    <div class="w-1/2 p-2 border-r bg-gray-800 rounded-lg">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Liste des ordinateurs</h2>
 
       <!-- Contrôles de tri -->
@@ -211,8 +222,9 @@ const getButtonClass = (key) => {
           :key="computer.computer_id"
           @click="selectComputer(computer)"
           :class="{
-            'flex flex-col items-center space-y-2 transition-transform duration-300 hover:scale-105 cursor-pointer p-2 bg-gray-700 rounded-lg shadow-lg border-r': true,
-            'bg-gray-600': selectedComputer && selectedComputer.computer_id === computer.computer_id
+            'flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg ': true,
+            'bg-gray-600 border-orange-500 border-4': selectedComputer && selectedComputer.computer_id === computer.computer_id,
+            'bg-gray-700 border-gray-700 border-4': !(selectedComputer && selectedComputer.computer_id === computer.computer_id)
           }"
         >
           <img src="/storage/Documentation/ComputerLogo.png" class="w-10 h-10" alt="Computer Icon" />
@@ -270,7 +282,7 @@ const getButtonClass = (key) => {
             </CustomButton>
 
             <!-- Bouton de suppression -->
-            <CustomButton type="danger" :disabled="deleteForm.processing" @click="handleDelete">
+            <CustomButton type="danger" :disabled="deleteForm.processing" @click="initiateDelete">
               Supprimer l'ordinateur
             </CustomButton>
           </div>
@@ -281,6 +293,24 @@ const getButtonClass = (key) => {
         <p>Aucun ordinateur sélectionné. Cliquez sur un ordinateur dans la liste pour voir les détails.</p>
       </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      v-model:show="showModal"
+      max-width="sm"
+      @close="cancelDelete"
+    >
+      <template #title>
+        Confirmation de la suppression
+      </template>
+      <template #content>
+        <p>Êtes-vous sûr de vouloir supprimer cet ordinateur ? Cette action est irréversible.</p>
+      </template>
+      <template #footer>
+        <button @click="cancelDelete" class="px-4 py-2 bg-gray-500 text-white rounded ml-2">Annuler</button>
+        <button @click="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded ml-2">Supprimer</button>
+      </template>
+    </ConfirmationModal>
   </div>
 </template>
 
