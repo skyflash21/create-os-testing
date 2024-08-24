@@ -4,7 +4,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
+use App\Models\User;
+use App\Events\TestEvent;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -27,6 +28,3 @@ Route::middleware([
     Route::resource('computers', ComputerController::class);
     Route::get('/documentation', function () {return Inertia::render('Documentation/index');})->name('documentation');
 });
-
-// Route qui sont accessible sans session authentifiée
-

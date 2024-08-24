@@ -9,6 +9,8 @@ use App\Models\Computer;
 use Illuminate\Routing\Controller;
 use Laravel\Jetstream\Jetstream;
 
+use App\Events\ComputerRegisteredEvent;
+
 class ComputerController extends Controller
 {
     /**
@@ -86,7 +88,12 @@ class ComputerController extends Controller
             'used_disk_space' => $request->used_disk_space,
         ]);
 
-        return response()->json(['message' => 'Computer added successfully.'], 201);
+        $user = $personal_access_token->tokenable;
+
+        // Dispatch the event
+        event(new ComputerRegisteredEvent($computer, $user));
+
+        return response()->json($computer, 201);
     }
 
     /**

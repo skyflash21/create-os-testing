@@ -6,6 +6,7 @@ import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
+import CustomButton from '@/Components/CustomButton.vue';
 
 const props = defineProps({
   computers: Array,
@@ -97,19 +98,92 @@ const toggleSortOrder = () => {
 // Helper for button classes
 const getButtonClass = (key) => {
   return {
-    'px-3 py-1 border-none rounded': true,
-    'text-gray-400 hover:text-white': sortKey.value !== key,
-    'bg-gray-600 text-white': sortKey.value === key,
-    'bg-gray-800': sortKey.value === key && sortOrder.value === 'asc',
-    'bg-gray-500': sortKey.value === key && sortOrder.value === 'desc',
+    'px-3 py-1 text-gray-400 hover:text-white border-none rounded': true,
+    'text-white': sortKey.value === key,
   };
 };
 </script>
 
+<style scope>
+
+/* Style pour les zones des ordinateurs et des détails */
+.bg-gray-800 {
+  background-color: #2d3748; /* Couleur de fond gris foncé */
+}
+
+.bg-gray-700 {
+  background-color: #4a5568; /* Couleur de fond gris encore plus foncé */
+}
+
+.border-r {
+  border-right: 1px solid #4a5568; /* Bordure droite gris foncé */
+}
+
+.rounded-lg {
+  border-radius: 0.75rem; /* Coins plus arrondis */
+}
+
+.shadow-lg {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Ombre plus marquée pour effet moderne */
+}
+
+.max-h-[calc(100vh-8rem)] {
+  max-height: calc(100vh - 8rem); /* Hauteur maximale pour les détails */
+}
+
+.overflow-y-auto {
+  overflow-y: auto; /* Défilement vertical automatique */
+}
+
+/* Styles spécifiques pour les zones */
+.list-container {
+  background: linear-gradient(180deg, rgba(45, 51, 72, 0.8) 0%, rgba(45, 51, 72, 0.5) 100%);
+  border: 1px solid #4a5568;
+}
+
+.detail-container {
+  background: linear-gradient(180deg, rgba(45, 51, 72, 0.8) 0%, rgba(45, 51, 72, 0.5) 100%);
+  border: 1px solid #4a5568;
+}
+
+/* Styles pour les zones d'info avec des bordures arrondies */
+.info-box {
+  background-color: #1a202c; /* Arrière-plan très sombre */
+  border: 1px solid #2d3748; /* Bordure légèrement plus claire */
+  border-radius: 0.75rem; /* Coins arrondis */
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Ombre subtile */
+}
+
+.scrollbar-custom {
+  scrollbar-width: thin; /* Taille de la barre de défilement (pour Firefox) */
+  scrollbar-color: #4a5568 #2d3748; /* Couleur de la barre et de la piste (pour Firefox) */
+}
+
+/* Pour Webkit (Chrome, Safari) */
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px; /* Largeur de la barre de défilement */
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: #2d3748; /* Couleur de la piste de défilement */
+  border-radius: 10px; /* Coins arrondis de la piste */
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: #4a5568; /* Couleur de la barre de défilement */
+  border-radius: 10px; /* Coins arrondis de la barre */
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: #6b7280; /* Couleur de la barre au survol */
+}
+</style>
+
 <template>
-  <div class="flex h-screen p-6">
+  <div class="flex h-screen p-6 bg-gray-900">
     <!-- Liste des ordinateurs -->
-    <div class="w-1/3 p-4 border-r overflow-y-auto">
+    <div class="w-1/2 p-2 border-r bg-gray-800 rounded-lg ">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Liste des ordinateurs</h2>
 
       <!-- Contrôles de tri -->
@@ -131,17 +205,17 @@ const getButtonClass = (key) => {
         </button>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-3 p-2 gap-5 overflow-y-auto overflow-x-hidden scrollbar-custom max-h-[calc(100vh-10rem)]">
         <div
           v-for="computer in sortedComputers"
           :key="computer.computer_id"
           @click="selectComputer(computer)"
           :class="{
-            'flex flex-col items-center space-y-1 transition-transform duration-300 hover:scale-105 cursor-pointer': true,
-            'bg-gray-700': selectedComputer && selectedComputer.computer_id === computer.computer_id
+            'flex flex-col items-center space-y-2 transition-transform duration-300 hover:scale-105 cursor-pointer p-2 bg-gray-700 rounded-lg shadow-lg border-r': true,
+            'bg-gray-600': selectedComputer && selectedComputer.computer_id === computer.computer_id
           }"
         >
-          <img src="/storage/Documentation/ComputerLogo.png" class="w-12 h-12" alt="Computer Icon" />
+          <img src="/storage/Documentation/ComputerLogo.png" class="w-10 h-10" alt="Computer Icon" />
           <span class="text-sm font-semibold text-center text-white">
             {{ computer.computer_id }} : {{ computer.truncated_name }}
           </span>
@@ -150,12 +224,12 @@ const getButtonClass = (key) => {
     </div>
 
     <!-- Détails et modification -->
-    <div class="w-2/3 p-4">
+    <div class="w-2/3 p-4 bg-gray-800 rounded-lg detail-container">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Détails de l'ordinateur</h2>
 
-      <div v-if="selectedComputer" class="p-6 bg-gray-800 text-white rounded-lg shadow-lg">
+      <div v-if="selectedComputer" class="info-box">
         <!-- Détails non modifiables -->
-        <div class="mb-6">
+        <div class="mb-6 text-white">
           <p class="text-lg font-medium">ID de l'ordinateur: {{ selectedComputer.computer_id }}</p>
           <p class="text-sm font-medium">Nom: {{ selectedComputer.computer_name }}</p>
           <p class="text-sm font-medium">Description: {{ selectedComputer.computer_description }}</p>
@@ -191,14 +265,14 @@ const getButtonClass = (key) => {
           </div>
           <div class="mt-6 flex justify-end space-x-4">
             <!-- Bouton de mise à jour -->
-            <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+            <CustomButton type="primary" :disabled="form.processing">
               Mettre à jour l'ordinateur
-            </PrimaryButton>
+            </CustomButton>
 
             <!-- Bouton de suppression -->
-            <DangerButton :class="{ 'opacity-25': deleteForm.processing }" :disabled="deleteForm.processing" @click="handleDelete">
+            <CustomButton type="danger" :disabled="deleteForm.processing" @click="handleDelete">
               Supprimer l'ordinateur
-            </DangerButton>
+            </CustomButton>
           </div>
         </form>
       </div>
@@ -210,17 +284,3 @@ const getButtonClass = (key) => {
   </div>
 </template>
 
-<style>
-/* Style pour les boutons de tri */
-button {
-  font-size: 0.875rem; /* Taille de police réduite */
-  line-height: 1.25; /* Hauteur de ligne réduite */
-  padding: 0.25rem 0.5rem; /* Réduit le padding */
-  border: 1px solid transparent; /* Pas de fond */
-  transition: background-color 0.3s, color 0.3s; /* Animation de transition */
-}
-
-button:hover {
-  background-color: rgba(255, 255, 255, 0.1); /* Fond transparent au survol */
-}
-</style>

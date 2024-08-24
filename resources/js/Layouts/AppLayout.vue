@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
 import Dropdown from '@/Components/Dropdown.vue';
@@ -8,12 +8,14 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
+const page = usePage();
 defineProps({
     title: String,
 });
 
 const showingNavigationDropdown = ref(false);
 
+// Function to switch team
 const switchToTeam = (team) => {
     router.put(route('current-team.update'), {
         team_id: team.id,
@@ -22,16 +24,63 @@ const switchToTeam = (team) => {
     });
 };
 
+// Function to log out
 const logout = () => {
     router.post(route('logout'));
 };
+
+// Import Notification component
+import Notification from '@/Components/Notification.vue';
+
+// Create a ref for the notifications array
+const notifications = ref([]);
+
+// Function to show notification
+const showNotification = (message, computerName, imageUrl) => {
+  if (message && computerName) {
+    const id = Date.now();
+    notifications.value.push({
+      id,
+      message,
+      computerName,
+      imageUrl,
+    });
+    
+    // Add delay before removing notification
+    setTimeout(() => {
+      removeNotification(id);
+    }, 5000); // Adjust the time as needed
+  }
+};
+
+// Function to remove notification
+const removeNotification = (id) => {
+  notifications.value = notifications.value.filter(n => n.id !== id);
+};
+
+onMounted(() => {
+  window.Echo.private(`App.Models.User.${page.props.auth.user.id}`)
+    .listen('ComputerRegisteredEvent', (event) => {
+      console.log('Received ComputerRegisteredEvent:', event);
+      showNotification(
+        `Computer Registered: ${event.computer.id}`,
+        event.computer.name,
+        "/storage/Documentation/ComputerLogo.png"
+      );
+    });
+});
+
+
 </script>
 
 <template>
     <div>
         <Head :title="title" />
-
         <Banner />
+        <Notification
+          :notifications="notifications"
+          @close="removeNotification"
+        />
 
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <nav class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
@@ -290,3 +339,9 @@ const logout = () => {
         </div>
     </div>
 </template>
+
+<style scoped>
+button {
+    @apply font-medium;
+}
+</style>
