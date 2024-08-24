@@ -70,6 +70,51 @@ onMounted(() => {
     });
 });
 
+// Presence channel
+let $users_count = 0;
+
+Echo.join(`presence`)
+        .here((users) => {
+            $users_count = users.length;
+            
+            document.getElementById('users-count').innerText = `Nombre d'utilisateurs connectés: ${$users_count}`;
+        })
+        .joining((user) => {
+            console.log(`${user.name} a rejoint la salle.`);
+            console.log(user);
+
+            $users_count++;
+
+            // Show notification
+            showNotification(
+                `${user.name} a rejoint la salle.`,
+                user.name,
+                user.profile_photo_url
+            );
+
+            // Update users count
+            document.getElementById('users-count').innerText = `Nombre d'utilisateurs connectés: ${$users_count}`;
+        })
+        .leaving((user) => {
+            console.log(`${user.name} a quitté la salle.`);
+
+            $users_count--;
+
+            // Show notification
+            showNotification(
+                `${user.name} a quitté la salle.`,
+                user.name,
+                user.profile_photo_url
+            );
+
+            // Update users count
+            document.getElementById('users-count').innerText = `Nombre d'utilisateurs connectés: ${$users_count}`;
+        })
+        .error((error) => {
+            console.error('Erreur:', error);
+            console.error('Reconnexion dans 5 secondes...');
+            setTimeout(connectToPresenceChannel, 5000); // Retry every 5 seconds
+        });
 
 </script>
 
@@ -105,6 +150,10 @@ onMounted(() => {
                                 </NavLink>
                             </div>
                         </div>
+
+                        <label class="text-white sm:flex sm:items-center sm:ms-6 text-sm text-gray-500 dark:text-gray-400" id="users-count">
+                            Nombre d'utilisateurs connectés: {{ $users_count }}
+                        </label>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
                             <div class="ms-3 relative">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Models\File;
 
 class FileController extends Controller
@@ -13,9 +14,6 @@ class FileController extends Controller
 
     /**
      * Récupérer un fichier dans un répertoire.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function retrieveFile(Request $request)
     {
@@ -24,12 +22,8 @@ class FileController extends Controller
         $getRaw = $request->boolean('get_raw', false);
         $version = $request->input('version', null);
 
-        if ($version) {
-            $fileRecord = File::where('path', $fullPath)->where('version', $version)->first();
-        } else {
-            $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
-        }
-        
+        $fileRecord = $this->getFileRecord($fullPath, $version);
+
         if (!$fileRecord) {
             if (!is_file($fullPath)) {
                 return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
@@ -49,17 +43,13 @@ class FileController extends Controller
 
     /**
      * Récupérer la version d'un fichier.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function retrieveFileVersion(Request $request)
     {
         $relativePath = $request->input('path', '');
         $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
 
-        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
-        $file_changed = false;
+        $fileRecord = $this->getFileRecord($fullPath);
 
         if (!$fileRecord) {
             if (!is_file($fullPath)) {
@@ -68,22 +58,21 @@ class FileController extends Controller
 
             $content = $this->getFileContent($fullPath);
             $fileRecord = $this->storeNewFile($fullPath, $content);
+            $fileChanged = true;
         } else {
             $content = $this->getFileContent($fullPath);
-            if ($this->hasFileChanged($content, $fileRecord->hash)) {
+            $fileChanged = $this->hasFileChanged($content, $fileRecord->hash);
+
+            if ($fileChanged) {
                 $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
-                $file_changed = true;
             }
         }
 
-        return response()->json(['version' => $fileRecord->version, 'file_changed' => $file_changed], 200);
+        return response()->json(['version' => $fileRecord->version, 'file_changed' => $fileChanged], 200);
     }
 
     /**
      * Récupérer la liste des fichiers dans un répertoire.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function retrieveFilesList(Request $request)
     {
@@ -94,94 +83,72 @@ class FileController extends Controller
             return response()->json(['error' => "Le répertoire $relativePath n'existe pas"], 404);
         }
 
-        $file = array_values(array_diff(scandir($fullPath), ['.', '..']));
-
-        // Retirer les fichiers cachés
-        $file = array_filter($file, function ($file) {
+        $files = array_values(array_filter(scandir($fullPath), function ($file) {
             return strpos($file, '.') !== 0;
-        });
-        
-        $file = array_values($file);
+        }));
 
-        return response()->json(['files' => $file], 200);
+        return response()->json(['files' => $files], 200);
     }
 
     /**
      * Récupérer le fichier d'installation.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\Response
      */
     public function retrieveStartupFile(Request $request)
     {
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . self::STARTUP_FILE);
-
-        if (!is_file($fullPath)) {
-            return response()->json(['error' => "Le fichier d'installation n'existe pas"], 404);
-        }
-
-        // check if the file has changed
-        $content = $this->getFileContent($fullPath);
-        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
-        if (!$fileRecord) {
-            $fileRecord = $this->storeNewFile($fullPath, $content);
-        } else {
-            if ($this->hasFileChanged($content, $fileRecord->hash)) {
-                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
-            }
-        }
-
-        return $this->sendRawContent($content);
+        return $this->retrieveSpecialFile(self::STARTUP_FILE);
     }
 
     /**
      * Récupérer le fichier de démarrage.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\Response
      */
     public function retrieveBootstrapFile(Request $request)
     {
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . self::BOOTSTRAP_FILE);
+        return $this->retrieveSpecialFile(self::BOOTSTRAP_FILE);
+    }
+
+    /**
+     * Méthode privée pour traiter les fichiers spéciaux (startup/bootstrap).
+     */
+    private function retrieveSpecialFile(string $filePath)
+    {
+        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $filePath);
 
         if (!is_file($fullPath)) {
-            return response()->json(['error' => "Le fichier de démarrage n'existe pas"], 404);
+            return response()->json(['error' => "Le fichier $filePath n'existe pas"], 404);
         }
 
-        // check if the file has changed
         $content = $this->getFileContent($fullPath);
-        $fileRecord = File::where('path', $fullPath)->orderBy('version', 'desc')->first();
-        if (!$fileRecord) {
-            $fileRecord = $this->storeNewFile($fullPath, $content);
-        } else {
-            if ($this->hasFileChanged($content, $fileRecord->hash)) {
-                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
-            }
+        $fileRecord = $this->getFileRecord($fullPath);
+
+        if (!$fileRecord || $this->hasFileChanged($content, $fileRecord->hash)) {
+            $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version ?? null);
         }
 
         return $this->sendRawContent($content);
     }
 
     /**
+     * Récupérer un enregistrement de fichier depuis la base de données ou le cache.
+     */
+    protected function getFileRecord(string $fullPath, ?int $version = null): ?File
+    {
+        $cacheKey = $version ? "file_record_{$fullPath}_v{$version}" : "file_record_{$fullPath}_latest";
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($fullPath, $version) {
+            $query = File::where('path', $fullPath);
+            return $version ? $query->where('version', $version)->first() : $query->orderBy('version', 'desc')->first();
+        });
+    }
+
+    /**
      * Récupérer et minifier le contenu d'un fichier.
-     * 
-     * @param string $filePath
-     * @return string
      */
     protected function getFileContent(string $filePath): string
     {
-        $content = file_get_contents($filePath);
-        //$content = $this->minifyLua($content);
-
-        return $content;
+        return file_get_contents($filePath);
     }
 
     /**
      * Vérifier si le fichier a changé.
-     * 
-     * @param string $content
-     * @param string $existingHash
-     * @return bool
      */
     protected function hasFileChanged(string $content, string $existingHash): bool
     {
@@ -190,32 +157,31 @@ class FileController extends Controller
 
     /**
      * Stocker un nouveau fichier dans la base de données.
-     * 
-     * @param string $filePath
-     * @param string $content
-     * @param int|null $currentVersion
-     * @return File
      */
     protected function storeNewFile(string $filePath, string $content, ?int $currentVersion = null): File
     {
         $newVersion = $currentVersion ? $currentVersion + 1 : 1;
-        $file = new File();
-        $file->content = $content;
-        $file->hash = hash('sha256', $content);
-        $file->path = $filePath;
-        $file->version = $newVersion;
-        $file->size = strlen($content);
-        $file->name = basename($filePath);
+        $file = new File([
+            'content' => $content,
+            'hash' => hash('sha256', $content),
+            'path' => $filePath,
+            'version' => $newVersion,
+            'size' => strlen($content),
+            'name' => basename($filePath),
+        ]);
         $file->save();
+
+        // Mise à jour du cache
+        Cache::put("file_record_{$filePath}_latest", $file, now()->addMinutes(10));
+        if ($currentVersion) {
+            Cache::put("file_record_{$filePath}_v{$newVersion}", $file, now()->addMinutes(10));
+        }
 
         return $file;
     }
 
     /**
      * Retourner une réponse avec le fichier brut.
-     * 
-     * @param string $content
-     * @return \Illuminate\Http\Response
      */
     protected function sendRawContent(string $content)
     {
@@ -224,9 +190,6 @@ class FileController extends Controller
 
     /**
      * Retourner une réponse JSON avec les informations du fichier.
-     * 
-     * @param File $file
-     * @return \Illuminate\Http\JsonResponse
      */
     protected function sendFileResponse(File $file)
     {
@@ -237,40 +200,4 @@ class FileController extends Controller
             ]
         ], 200);
     }
-
-    /**
-     * Minify Lua code by removing unnecessary whitespace, comments, and newlines.
-     * 
-     * @param string $content
-     * @return string
-     */
-    protected function minifyLua(string $content): string
-    {
-        // Remove block comments --[[]]
-        $content = preg_replace('/--\[\[.*?\]\]/s', '', $content);
-
-        // Remove single-line comments --
-        $content = preg_replace('/--.*$/m', '', $content);
-
-        // Replace multiple space characters with a single space without affecting newlines
-        $content = preg_replace('/[ \t]+/', ' ', $content);
-
-        // Replace multiple newline characters with a single newline
-        $content = preg_replace('/\n+/', "\n", $content);
-
-        // Remove empty lines
-        $content = preg_replace('/^\s*[\r\n]/m', '', $content);
-
-        // Remove space at the beginning of a line
-        $content = preg_replace('/^\s+/m', '', $content);
-
-        // Remove space at the end of a line
-        $content = preg_replace('/\s+$/m', '', $content);
-
-        return $content;
-    }
-
-
-
-
 }

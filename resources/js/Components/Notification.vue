@@ -38,9 +38,6 @@ const removeNotification = (id) => {
   emit('close', id);
 };
 
-watch(
-  () => props.notifications
-);
 </script>
 
 <style scope>
