@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->withPersonalTeam()->create([
             'name' => 'Administrateur',
             'email' => 'skyspeed21@outlook.com',
-            'password'=> bcrypt('Ironman2100345'),
+            'password'=> bcrypt('mdptest123'),
         ]);
     }
 }
