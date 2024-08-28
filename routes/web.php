@@ -27,4 +27,7 @@ Route::middleware([
     Route::get('/dashboard', function () {return Inertia::render('Dashboard');})->name('dashboard');
     Route::resource('computers', ComputerController::class);
     Route::get('/documentation', function () {return Inertia::render('Documentation/index');})->name('documentation');
+
+    
 });
+
