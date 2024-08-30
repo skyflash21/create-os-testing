@@ -1,6 +1,14 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Welcome from '@/Components/Welcome.vue';
+
+const test_wisper = () => {
+    console.log('test_wisper');
+    Echo.private(`presence-presence`)
+    .whisper('typing', {
+        name: "this.user.name"
+    });
+}
 </script>
 
 <template>
@@ -11,12 +19,8 @@ import Welcome from '@/Components/Welcome.vue';
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
-                    <Welcome />
-                </div>
-            </div>
+        <div class="flex justify-center mt-8">
+            <button class="px-4 py-2 text-white bg-blue-500 rounded-md" @click="test_wisper">Test Wisper</button>
         </div>
     </AppLayout>
 </template>

@@ -277,6 +277,8 @@ local function initialize_computer()
     print("Fin de la verification de la sequence d'initialisation")
     
     print("Envoie du signal au gestionnaires de la console.")
+
+    os.queueEvent("console_ready")
 end
 
 local function main()

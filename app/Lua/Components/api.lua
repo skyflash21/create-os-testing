@@ -76,7 +76,7 @@ local function post(path,body,additional_header)
     for key, value in pairs(additional_header) do
         header[key] = value
     end
-
+    print("Envoie de la requête POST")
     local response, fail_string, http_failing_response = http.post(_G.url.. "/api/"..path, textutils.serializeJSON(body), header)
 
     if not response then
