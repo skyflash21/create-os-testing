@@ -224,11 +224,9 @@ class ComputerController extends Controller
         
         $socketId = $request->input('socket_id');
 
-        if ($channelName !== "presence-computer") {
-            return response()->json([ "error"=> "BAD REQUEST"], 404);
-        }
+        $channelName = $channelName . "." . $user->id;
 
-        $channelName = $channelName . "-" . $user->id;
+        $computer->isUser = false;
 
         $userData = json_encode(["user_id" => $computer->id, "user_info" => $computer]);
         $stringToSign = "$socketId:$channelName:$userData";

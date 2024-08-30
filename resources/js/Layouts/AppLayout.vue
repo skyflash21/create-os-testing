@@ -76,15 +76,11 @@ onMounted(() => {
     );
 
     // Écoute des événements sur Echo
-    window.Echo.join(`presence`)
+    window.Echo.join('presence')
         .here((users) => {
-            usersCount.value = users.length;
-            document.getElementById(
-                "users-count"
-            ).innerText = `Nombre d'utilisateurs connectés: ${usersCount.value}`;
+            console.log('Current users in presence channel:', users);
         })
         .joining((user) => {
-            // Afficher la notification
             showNotification(
                 `${user.name} a rejoint la salle.`,
                 user.name,
@@ -92,17 +88,40 @@ onMounted(() => {
             );
         })
         .leaving((user) => {
-            // Afficher la notification
             showNotification(
                 `${user.name} a quitté la salle.`,
                 user.name,
                 user.profile_photo_url
             );
         })
+        .listenForWhisper('TypingEvent', (event) => {
+            console.log("Received TypingEvent:", event.name);
+            showNotification(
+                `${event.name} is typing...`,
+                event.name,
+                '/path-to-some-icon.png'
+            );
+        })
         .error((error) => {
             console.error("Erreur:", error);
-            console.error("Reconnexion dans 5 secondes...");
-            setTimeout(connectToPresenceChannel, 5000); // Réessayer toutes les 5 secondes
+        });
+
+    // Connect to the presence of the computer
+    window.Echo.join(`computer.${page.props.auth.user.id}`)
+        .here((users) => {
+            console.log('Current users in computer channel:', users);
+        })
+        .joining((user) => {
+            console.log('User joined:', user);
+        })
+        .leaving((user) => {
+            console.log('User left:', user);
+        })
+        .listenForWhisper('TypingEvent', (event) => {
+            console.log("Received TypingEvent:", event.name);
+        })
+        .error((error) => {
+            console.error("Erreur:", error);
         });
 });
 </script>

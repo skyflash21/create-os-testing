@@ -51,12 +51,12 @@ end
     @return void
 ]]--
 function module:run(current_session_id)
-    -- Verification de la variable current_session_id
+    -- Vérification de la variable current_session_id
     if current_session_id == nil or type(current_session_id) ~= "number" then
         error("current_session_id must be a number, current type is " .. type(current_session_id))
     end
 
-    -- On mets à jour la variable session_id
+    -- On met à jour la variable session_id
     self.session_id = current_session_id
 
     print("Initialisation du module websocket")
@@ -65,9 +65,9 @@ function module:run(current_session_id)
 
     print("Connexion au serveur websocket")
 
-    -- Boucle infinie pour gerer les evenements
+    -- Boucle infinie pour gérer les événements
     while true do
-        -- Recuperation des evenements
+        -- Récupération des événements
         local event, arg1, arg2, arg3 = os.pullEvent()
 
         -- Nettoyage des valeurs
@@ -75,23 +75,14 @@ function module:run(current_session_id)
         arg2 = arg2 or "nil"
         arg3 = arg3 or "nil"
 
-        -- Gestion des evenements obligatoires
+        -- Gestion des événements obligatoires
         if event == "stop_module" and arg1 == self.session_id then
             return
         elseif event == "websocket_message" then
             self:handle_websocket_message(arg2)
-        elseif event == "redstone" then
-            self.ws.send(textutils.serializeJSON({
-                event = "redstone",
-                data = {
-                    side = arg1,
-                    state = arg2
-                }
-            }))
         end
 
-
-        -- Gestion des evenements inherents au module
+        -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
         
     end
 end
@@ -146,7 +137,6 @@ function module:handle_websocket_message(message)
         }))
 
         print("Demande d'inscription : " .. self.channel)
-
     elseif message.event == "pusher:subscription_succeeded" or message.event == "pusher_internal:subscription_succeeded" then
         print("Inscription reussie")
         self.registered = true
@@ -156,49 +146,20 @@ function module:handle_websocket_message(message)
 
         local data = textutils.unserializeJSON(message.data)
         local presence = data["presence"]
-
-        local computer_ids_connected = {}
-
-        -- Ajouter les membres connectes
+        
+        -- {"hash":{"1":[{"id":1,"created_at":"2024-08-28T12:31:00.000000Z","email":"skyspeed21@outlook.com","updated_at":"2024-08-28T12:31:48.000000Z","role":"user","name":"Administrateur","profile_photo_url":"https://ui-avatars.com/api/?name=A&color=7F9CF5&background=EBF4FF","isUser":true,"current_team_id":1,"email_verified_at":"2024-08-28T12:31:00.000000Z"}],"82":{"type":"computer","description":"test","id":82,"created_at":"2024-08-30T11:04:45.000000Z","isUser":false,"updated_at":"2024-08-30T11:04:45.000000Z","name":"test","total_disk_space":1000000,"used_disk_space":4264,"wireless_modem_side":"none","personal_access_token_id":5,"is_advanced":1}},"count":2,"ids":["1",82]}
         for key, value in pairs(presence["hash"]) do
-            self.members[value.id] = value
-            table.insert(computer_ids_connected, value.id)
+            if value.isUser then
+                print("Utilisateur : " .. value.name)
+            else
+                print("Ordinateur : " .. value.name)
+            end
         end
-
-        print("Membres actuels : " .. table.concat(computer_ids_connected, ", "))
 
 
     elseif message.event == "pusher_internal:member_added" then
-        local data = message.data
-        local user_data = data["user_info"]
-        local user_id = user_data.id
-
-        -- Ajouter le membre uniquement s'il n'existe pas dejà
-        if not self.members[user_id] then
-            self.members[user_id] = user_data
-            print("Membre ajoute : " .. user_data["name"] .. " (" .. user_id .. ")")
-        end
 
     elseif message.event == "pusher_internal:member_removed" then
-        local data = message.data
-        local user_id = data["user_id"]
-
-        -- Supprimer le membre s'il existe
-        if self.members[user_id] then
-            --save into files
-            local file = fs.open("success.json", "w")
-            file.write(textutils.serializeJSON(self.members))
-            file.close()
-            print("Membre supprime : " .. self.members[user_id]["name"] .. " (" .. user_id .. ")")
-            self.members[user_id] = nil
-        else
-            print("Membre introuvable : " .. user_id)
-            --save into files
-            local file = fs.open("fail.json", "w")
-            file.write(textutils.serializeJSON(self.members))
-            file.close()
-        end
-
 
     elseif message.event == "pusher:ping" then
         self.ws.send(textutils.serializeJSON({
@@ -209,7 +170,8 @@ function module:handle_websocket_message(message)
         print("Non inscrit : " .. message.event)
         return
     else
-        print("Message inconnu : " .. message.event .. " " .. message.data)
+        print("Message inconnu : " .. message.event)
+        print(textutils.serializeJSON(message))
     end
 end
 

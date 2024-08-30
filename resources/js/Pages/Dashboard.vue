@@ -1,15 +1,19 @@
 <script setup>
+import { usePage } from "@inertiajs/vue3";
+import Echo from 'laravel-echo';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Welcome from '@/Components/Welcome.vue';
+
+const page = usePage();
 
 const test_wisper = () => {
+    window.Echo.join('presence')
+        .whisper('TypingEvent', {
+            name: page.props.auth.user.name // Assuming this is how you access the authenticated user's name
+        });
     console.log('test_wisper');
-    Echo.private(`presence-presence`)
-    .whisper('typing', {
-        name: "this.user.name"
-    });
 }
 </script>
+
 
 <template>
     <AppLayout title="Dashboard">

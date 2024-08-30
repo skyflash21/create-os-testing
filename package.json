@@ -6,7 +6,7 @@
         "build": "vite build",
         "serve": "npm-run-all --parallel dev reverb queue laravel",
         "laravel": "php artisan serve",
-        "reverb": "php artisan reverb:start",
+        "reverb": "php artisan reverb:start --debug",
         "queue": "php artisan queue:listen"
     },
     "devDependencies": {
