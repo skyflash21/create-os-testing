@@ -34,6 +34,7 @@ function module.new()
     self.ws = nil
 
     self.members = {}
+    self.user = nil
     return self
 end
 
@@ -151,16 +152,32 @@ function module:handle_websocket_message(message)
         for key, value in pairs(presence["hash"]) do
             if value.isUser then
                 print("Utilisateur : " .. value.name)
+                self.user = value
             else
                 print("Ordinateur : " .. value.name)
+                self.members[value.id] = value
             end
         end
 
 
     elseif message.event == "pusher_internal:member_added" then
-
+        local user_info = message.data.user_info
+        if user_info.isUser then
+            print("Utilisateur ajoute : " .. user_info.name)
+            self.user = user_info
+        else
+            print("Ordinateur ajoute : " .. user_info.name)
+            self.members[user_info.id] = user_info
+        end
     elseif message.event == "pusher_internal:member_removed" then
-
+        local user_id = message.data.user_id
+        if user_id == "-1" then
+            print("Utilisateur supprime")
+            self.user = nil
+        else
+            print("Ordinateur supprime " .. user_id)
+            self.members[user_id] = nil
+        end
     elseif message.event == "pusher:ping" then
         self.ws.send(textutils.serializeJSON({
             event = "pusher:pong",

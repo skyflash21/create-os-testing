@@ -14,6 +14,6 @@ broadcast::channel('presence', function (User $user) {
  
 Broadcast::channel('computer.{roomId}', function (User $user) {
     $user->isUser = true;
-
+    $user->id = -1;
     return $user;
 });
