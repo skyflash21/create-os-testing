@@ -148,7 +148,6 @@ function module:handle_websocket_message(message)
         local data = textutils.unserializeJSON(message.data)
         local presence = data["presence"]
         
-        -- {"hash":{"1":[{"id":1,"created_at":"2024-08-28T12:31:00.000000Z","email":"skyspeed21@outlook.com","updated_at":"2024-08-28T12:31:48.000000Z","role":"user","name":"Administrateur","profile_photo_url":"https://ui-avatars.com/api/?name=A&color=7F9CF5&background=EBF4FF","isUser":true,"current_team_id":1,"email_verified_at":"2024-08-28T12:31:00.000000Z"}],"82":{"type":"computer","description":"test","id":82,"created_at":"2024-08-30T11:04:45.000000Z","isUser":false,"updated_at":"2024-08-30T11:04:45.000000Z","name":"test","total_disk_space":1000000,"used_disk_space":4264,"wireless_modem_side":"none","personal_access_token_id":5,"is_advanced":1}},"count":2,"ids":["1",82]}
         for key, value in pairs(presence["hash"]) do
             if value.isUser then
                 print("Utilisateur : " .. value.name)

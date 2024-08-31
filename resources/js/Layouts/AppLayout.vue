@@ -109,22 +109,46 @@ onMounted(() => {
     // Connect to the presence of the computer
     window.Echo.join(`computer.${page.props.auth.user.id}`)
         .here((users) => {
-            console.log('Current users in computer channel:', users);
+
+            // Use localstorage to store all the already connected computers
+            localStorage.setItem('connectedComputers', JSON.stringify(users));
+
+            // Trigger global event for computer update
+            const event = new CustomEvent('computer_list', { detail: users });
+            window.dispatchEvent(event);
         })
         .joining((user) => {
-            console.log('User joined:', user);
+
+            // Update the connected computers list in localstorage
+            const connectedComputers = JSON.parse(
+                localStorage.getItem('connectedComputers')
+            );
+            connectedComputers.push(user);
+            localStorage.setItem('connectedComputers', JSON.stringify(connectedComputers));
+
+            // Trigger global event for computer update
+            const event = new CustomEvent('computer_add', { detail: user });
+            window.dispatchEvent(event);
         })
         .leaving((user) => {
-            console.log('User left:', user);
-        })
-        .listenForWhisper('TypingEvent', (event) => {
-            console.log("Received TypingEvent:", event.name);
+            // Update the connected computers list in localstorage
+            const connectedComputers = JSON.parse(
+                localStorage.getItem('connectedComputers')
+            );
+            const index = connectedComputers.findIndex((u) => u.id === user.id);
+            connectedComputers.splice(index, 1);
+            localStorage.setItem('connectedComputers', JSON.stringify(connectedComputers));
+
+            // Trigger global event for computer update
+            const event = new CustomEvent('computer_remove', { detail: user });
+            window.dispatchEvent(event);
         })
         .error((error) => {
             console.error("Erreur:", error);
         });
 });
 </script>
+
 
 <template>
     <div>

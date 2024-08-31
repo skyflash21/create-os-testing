@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
@@ -7,14 +7,16 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import CustomButton from '@/Components/CustomButton.vue';
-import ConfirmationModal from '@/Components/ConfirmationModal.vue'; // Import your modal component
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const props = defineProps({
   computers: Array,
 });
 
 const selectedComputer = ref(null);
-const showModal = ref(false); // State to control the visibility of the confirmation modal
+const showModal = ref(false);
+
+const connectedComputers = ref([]); // State to manage connected computers
 
 const form = useForm({
   _method: 'PUT',
@@ -47,7 +49,7 @@ const handleSubmit = () => {
 };
 
 const initiateDelete = () => {
-  showModal.value = true; // Show the confirmation modal
+  showModal.value = true;
 };
 
 const confirmDelete = () => {
@@ -56,7 +58,7 @@ const confirmDelete = () => {
       selectedComputer.value = null;
       props.computers = props.computers.filter(computer => computer.computer_id !== form.id);
       form.reset();
-      showModal.value = false; // Hide the confirmation modal
+      showModal.value = false;
     },
     onError: () => {
       console.error('Form submission error:', deleteForm.errors);
@@ -65,12 +67,12 @@ const confirmDelete = () => {
 };
 
 const cancelDelete = () => {
-  showModal.value = false; // Hide the confirmation modal
+  showModal.value = false;
 };
 
 // State for sorting
-const sortKey = ref('id'); // or 'name'
-const sortOrder = ref('asc'); // or 'desc'
+const sortKey = ref('id');
+const sortOrder = ref('asc');
 
 // Computed property to sort computers
 const sortedComputers = computed(() => {
@@ -89,10 +91,10 @@ const sortedComputers = computed(() => {
     truncated_name: computer.computer_name.length > 9 
       ? `${computer.computer_name.slice(0, 6)}...` 
       : computer.computer_name,
+    isConnected: connectedComputers.value.includes(computer.computer_id) // Check if the computer is connected
   }));
 });
 
-// Methods for sorting
 const sortBy = (key) => {
   if (sortKey.value === key) {
     // No change in sortOrder if same key is selected
@@ -101,19 +103,48 @@ const sortBy = (key) => {
   }
 };
 
-// Toggle sort order
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
 };
 
-// Helper for button classes
 const getButtonClass = (key) => {
   return {
     'px-3 py-1 text-gray-400 hover:text-white border-none rounded': true,
     'text-white': sortKey.value === key,
   };
 };
+
+
+// Listen to the global events
+onMounted(() => {
+  window.addEventListener('computer_list', (event) => {
+    let $computerList = event.detail;
+    // Only include computers where isUser is false
+    connectedComputers.value = $computerList.filter(computer => !computer.isUser).map(computer => computer.id);
+  });
+
+  window.addEventListener('computer_add', (event) => {
+    console.log('Computer added:', event.detail);
+
+    // If isUser is false, add the computer to the connectedComputers list
+    if (!event.detail.isUser) {
+      connectedComputers.value = [...connectedComputers.value, event.detail.id];
+    }
+  });
+
+  window.addEventListener('computer_remove', (event) => {
+    console.log('Computer removed:', event.detail);
+
+    // If isUser is false, remove the computer from the connectedComputers list
+    if (!event.detail.isUser) {
+      connectedComputers.value = connectedComputers.value.filter(id => id !== event.detail.id);
+    }
+  });
+});
 </script>
+
+
+
 
 <style scope>
 
@@ -222,9 +253,11 @@ const getButtonClass = (key) => {
           :key="computer.computer_id"
           @click="selectComputer(computer)"
           :class="{
-            'flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg ': true,
+            'flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg': true,
+            'bg-green-600 border-green-500 border-4': computer.isConnected,
+            'bg-red-600 border-red-500 border-4': !computer.isConnected,
             'bg-gray-600 border-orange-500 border-4': selectedComputer && selectedComputer.computer_id === computer.computer_id,
-            'bg-gray-700 border-gray-700 border-4': !(selectedComputer && selectedComputer.computer_id === computer.computer_id)
+            'bg-gray-700 border-gray-700 border-4': !(selectedComputer && selectedComputer.computer_id === computer.computer_id),
           }"
         >
           <img src="/storage/Documentation/ComputerLogo.png" class="w-10 h-10" alt="Computer Icon" />
@@ -235,6 +268,7 @@ const getButtonClass = (key) => {
       </div>
     </div>
 
+    <!-- Détails et modification -->
     <!-- Détails et modification -->
     <div class="w-2/3 p-4 bg-gray-800 rounded-lg detail-container">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Détails de l'ordinateur</h2>
@@ -313,4 +347,3 @@ const getButtonClass = (key) => {
     </ConfirmationModal>
   </div>
 </template>
-
