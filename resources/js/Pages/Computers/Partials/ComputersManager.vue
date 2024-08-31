@@ -270,10 +270,17 @@ onMounted(() => {
       </div>
 
       <div class="grid grid-cols-3 p-2 gap-5 overflow-y-auto overflow-x-hidden scrollbar-custom max-h-[calc(100vh-10rem)]">
-        <div v-for="computer in sortedComputers"
+        <div
+          v-for="computer in sortedComputers"
           :key="computer.computer_id"
           @click="selectComputer(computer)"
-          class="relative flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg"
+          :class="[
+            'relative flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg',
+            {
+              'bg-gray-600 border-orange-500 border-4': selectedComputer && selectedComputer.computer_id === computer.computer_id,
+              'bg-gray-700 border-gray-700 border-4': !(selectedComputer && selectedComputer.computer_id === computer.computer_id)
+            }
+          ]"
         >
           <img src="/storage/Documentation/ComputerLogo.png" class="w-10 h-10" alt="Computer Icon" />
           <span class="text-sm font-semibold text-center text-white">
@@ -286,11 +293,9 @@ onMounted(() => {
             :class="{
               'bg-green-500': computer.isConnected,
               'bg-red-500': !computer.isConnected,
-              'bg-gray-500': !selectedComputer || selectedComputer.computer_id !== computer.computer_id
             }"
           ></div>
         </div>
-
       </div>
     </div>
 
