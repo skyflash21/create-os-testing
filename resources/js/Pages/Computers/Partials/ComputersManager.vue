@@ -220,6 +220,28 @@ onMounted(() => {
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
   background: #6b7280; /* Couleur de la barre au survol */
 }
+
+/* Badge pour l'état des ordinateurs */
+.computer-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #00ff00; /* Couleur par défaut pour connecté */
+}
+
+.computer-badge.disconnected {
+  background-color: #ff0000; /* Couleur pour déconnecté */
+}
+
+.computer-badge.selected {
+  background-color: #ffa500; /* Couleur pour sélectionné */
+}
+
+
+
 </style>
 
 <template>
@@ -248,23 +270,27 @@ onMounted(() => {
       </div>
 
       <div class="grid grid-cols-3 p-2 gap-5 overflow-y-auto overflow-x-hidden scrollbar-custom max-h-[calc(100vh-10rem)]">
-        <div
-          v-for="computer in sortedComputers"
+        <div v-for="computer in sortedComputers"
           :key="computer.computer_id"
           @click="selectComputer(computer)"
-          :class="{
-            'flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg': true,
-            'bg-green-600 border-green-500 border-4': computer.isConnected,
-            'bg-red-600 border-red-500 border-4': !computer.isConnected,
-            'bg-gray-600 border-orange-500 border-4': selectedComputer && selectedComputer.computer_id === computer.computer_id,
-            'bg-gray-700 border-gray-700 border-4': !(selectedComputer && selectedComputer.computer_id === computer.computer_id),
-          }"
+          class="relative flex flex-col items-center space-y-2 transition-transform duration-150 hover:scale-105 cursor-pointer p-2 rounded-lg shadow-lg"
         >
           <img src="/storage/Documentation/ComputerLogo.png" class="w-10 h-10" alt="Computer Icon" />
           <span class="text-sm font-semibold text-center text-white">
             {{ computer.computer_id }} : {{ computer.truncated_name }}
           </span>
+          
+          <!-- Badge pour l'état de l'ordinateur -->
+          <div 
+            class="absolute bottom-2 right-2 w-3 h-3 rounded-full"
+            :class="{
+              'bg-green-500': computer.isConnected,
+              'bg-red-500': !computer.isConnected,
+              'bg-gray-500': !selectedComputer || selectedComputer.computer_id !== computer.computer_id
+            }"
+          ></div>
         </div>
+
       </div>
     </div>
 
