@@ -4,7 +4,14 @@
       <div
         class="grid"
         @keydown="handleKeydown"
+        @keyup="handleKeyup"
+        @mousedown="handleMouseClick"
+        @mouseup="handleMouseUp"
+        @mousemove="handleMouseDrag"
+        @wheel="handleMouseScroll"
+        @paste="handlePaste"
         tabindex="0"
+        ref="gridElement"
       >
         <div
           v-for="(cell, index) in grid"
@@ -41,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const rows = 19;
 const cols = 51;
@@ -70,10 +77,33 @@ const paletteColors = ref([
   '#FFFF00', '#FF00FF', '#00FFFF', '#808080', '#800000'
 ]);
 
+const gridElement = ref(null);
+
+function getGridCoordinates(event) {
+  const gridRect = gridElement.value.getBoundingClientRect();
+  const cellWidth = gridRect.width / cols;
+  const cellHeight = gridRect.height / rows;
+
+  let x = Math.floor((event.clientX - gridRect.left) / cellWidth) + 1;
+  let y = Math.floor((event.clientY - gridRect.top) / cellHeight) + 1;
+
+  // Ensure x and y are within bounds
+  if (x < 1) x = 1;
+  if (y < 1) y = 1;
+  if (x > cols) x = cols;
+  if (y > rows) y = rows;
+
+  return { x, y };
+}
+
 function handleKeydown(event) {
-  const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_`{|}~]$/;
+  console.log('Keydown event:', event.key);
+
+  const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
 
   if (validChars.test(event.key)) {
+    console.log('Char event:', event.key);
+
     if (currentIndex.value >= 0 && currentIndex.value < grid.value.length) {
       grid.value[currentIndex.value].char = event.key;
       grid.value[currentIndex.value].textColor = textColor.value;
@@ -91,6 +121,37 @@ function handleKeydown(event) {
   }
 }
 
+function handleKeyup(event) {
+  console.log('Keyup event:', event.key);
+}
+
+function handleMouseClick(event) {
+  const { x, y } = getGridCoordinates(event);
+  console.log('Mouse click event at grid:', x, y);
+}
+
+function handleMouseUp(event) {
+  const { x, y } = getGridCoordinates(event);
+  console.log('Mouse up event at grid:', x, y);
+}
+
+function handleMouseDrag(event) {
+  if (event.buttons === 1) { // Only log if the left mouse button is held down
+    const { x, y } = getGridCoordinates(event);
+    console.log('Mouse drag event at grid:', x, y);
+  }
+}
+
+function handleMouseScroll(event) {
+  const { x, y } = getGridCoordinates(event);
+  console.log('Mouse scroll event at grid:', x, y, 'Scroll delta:', event.deltaY);
+}
+
+function handlePaste(event) {
+  const paste = (event.clipboardData || window.clipboardData).getData('text');
+  console.log('Paste event:', paste);
+}
+
 function selectTextColor() {
   selectedColorType.value = 'text';
 }
@@ -106,6 +167,14 @@ function changeColor(color) {
     backgroundColor.value = color;
   }
 }
+
+onMounted(() => {
+  window.addEventListener('resize', handleTermResize);
+});
+
+function handleTermResize(event) {
+  console.log('Term resize event:', window.innerWidth, window.innerHeight);
+}
 </script>
 
 <style scoped>
@@ -114,6 +183,8 @@ function changeColor(color) {
   overflow: hidden;
   width: fit-content; /* Adjust to the content */
   height: fit-content; /* Adjust to the content */
+  border-radius: 5px;
+  border: 10px solid #B0B03F;
 }
 
 @font-face {
@@ -126,11 +197,9 @@ function changeColor(color) {
   grid-template-columns: repeat(51, 10px);
   grid-template-rows: repeat(19, 16px);
   margin: 0; /* Remove any default margins */
-  border: 10px solid #B0B03F;
   background-color: #000000;
   outline: none;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  border-radius: 5px;
   user-select: none; /* Disable text selection */
   overflow: hidden; /* Ensure content does not overflow */
 }
@@ -151,8 +220,6 @@ function changeColor(color) {
   margin: 0;
   vertical-align: middle; /* Assure un alignement vertical au centre */
 }
-
-
 
 .controls {
   display: flex;
