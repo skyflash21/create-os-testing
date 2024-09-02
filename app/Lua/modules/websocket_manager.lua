@@ -39,8 +39,18 @@ function module.new()
     
 
     self.virtual_screen = false
-    self.screenBuffer = {}
+    self.virtual_cursor = {1, 1}
     self.color_palette = {{0,0,0}}
+
+    
+    self.screenBuffer = {}
+    local screen_x, screen_y = term.getSize()
+    for y = 1, screen_y do
+        for x = 1, screen_x do
+            self.screenBuffer[y] = self.screenBuffer[y] or {}
+            self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
+        end
+    end
 
     return self
 end
@@ -77,6 +87,8 @@ function module:run(current_session_id)
 
     self:switch_to_virtual_screen()
 
+    local redstone_int = 0
+
     -- Boucle infinie pour gérer les événements
     while true do
         -- Récupération des événements
@@ -93,7 +105,8 @@ function module:run(current_session_id)
         elseif event == "websocket_message" then
             self:handle_websocket_message(arg2)
         elseif event == "redstone" then
-            print("Redstone event")
+            print("Redstone event : " .. redstone_int)
+            redstone_int = redstone_int + 1
         end
 
         -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
@@ -204,99 +217,167 @@ function module:handle_websocket_message(message)
     end
 end
 
+function module:updateScreenBuffer(x, y, char, textColor, bgColor)
+    local term_x, term_y = term.getSize()
+
+    if x < 1 or x > term_x or y < 1 or y > term_y then
+        error("Invalid coordinates")
+    end
+
+    self.screenBuffer[y] = self.screenBuffer[y]
+    local text_rgb = {term.getPaletteColor(textColor)}
+    local bg_rgb = {term.getPaletteColor(bgColor)}
+
+    -- search if self.color_palette contains the colors
+    local text_color_index = 0
+    local bg_color_index = 0
+
+    for i = 1, #self.color_palette do
+        if self.color_palette[i][1] == text_rgb[1] and self.color_palette[i][2] == text_rgb[2] and self.color_palette[i][3] == text_rgb[3] then
+            text_color_index = i
+        end
+
+        if self.color_palette[i][1] == bg_rgb[1] and self.color_palette[i][2] == bg_rgb[2] and self.color_palette[i][3] == bg_rgb[3] then
+            bg_color_index = i
+        end
+    end
+
+    if text_color_index == 0 then
+        text_color_index = #self.color_palette + 1
+        table.insert(self.color_palette, text_rgb)
+    end
+
+    if bg_color_index == 0 then
+        bg_color_index = #self.color_palette + 1
+        table.insert(self.color_palette, bg_rgb)
+    end
+
+    self.screenBuffer[y][x] = {char:byte(), text_color_index, bg_color_index}
+
+end
+
+function module:send_screen()
+    if not self.ws then
+        return
+    end
+
+    local value_to_send = textutils.serializeJSON({
+        event = "client-computer_message",
+        data = {
+            screen = self.screenBuffer,
+            color_palette = self.color_palette,
+        },
+        channel = self.channel
+    })
+
+    self.ws.send( value_to_send )
+end
+
 function module:switch_to_virtual_screen()
 
     self.virtual_screen = true
+    term.setCursorPos(1, 1)
+    self.virtual_cursor = {1, 1}
+    term.clear()
+    
 
-    -- Conversion des couleurs en 4 bits
-    local colorsMap = {
-        [1] = 0, [2] = 1, [4] = 2, [8] = 3,
-        [16] = 4, [32] = 5, [64] = 6, [128] = 7,
-        [256] = 8, [512] = 9, [1024] = 10, [2048] = 11,
-        [4096] = 12, [8192] = 13, [16384] = 14, [32768] = 15
-    }
+    --------------------- Remplacer les fonctions de base afin de garder l'écran virtuel à jour ---------------------
+    
+    ------ Remplacement de term.clear() ------
+    --- On efface l'écran virtuel
+    local orginial_term_clear = term.clear
+    term.clear = function()
+        self.screenBuffer = {}
+        orginial_term_clear()
+        self:send_screen()
+    end
 
-    -- Fonction pour mettre à jour le tableau
-    local function updateScreenBuffer(x, y, char, textColor, bgColor)
-        local term_x, term_y = term.getSize()
+    ------ Remplacement de term.setCursorPos(x, y) ------
+    --- On met à jour la position du curseur virtuel
+    local original_set_cursor_pos = term.setCursorPos
+    term.setCursorPos = function(x, y)
+        self.virtual_cursor = {x, y}
+        original_set_cursor_pos(x, y)
+        self:send_screen()
+    end
 
-        if x < 1 or x > term_x or y < 1 or y > term_y then
-            error("Invalid coordinates")
+    ------ Remplacement de term.write(text) ------
+    --- On met à jour l'écran virtuel
+    local original_term_write = term.write
+
+    term.write = function(text)
+        for i = 1, #text do
+            local text_color, bg_color = term.getTextColor(), term.getBackgroundColor()
+            self:updateScreenBuffer(self.virtual_cursor[1], self.virtual_cursor[2], text:sub(i, i), text_color, bg_color)
+            self.virtual_cursor[1] = self.virtual_cursor[1] + 1
         end
 
-        self.screenBuffer[y] = self.screenBuffer[y]
-        local text_rgb = {term.getPaletteColor(textColor)}
-        local bg_rgb = {term.getPaletteColor(bgColor)}
+        original_term_write(text)
+        self:send_screen()
+    end
 
-        -- search if self.color_palette contains the colors
-        local text_color_index = 0
-        local bg_color_index = 0
+    ------ Remplacement de term.blit(text, text_color, bg_color) ------
+    --- On met à jour l'écran virtuel
+    local original_term_blit = term.blit
 
-        for i = 1, #self.color_palette do
-            if self.color_palette[i][1] == text_rgb[1] and self.color_palette[i][2] == text_rgb[2] and self.color_palette[i][3] == text_rgb[3] then
-                text_color_index = i
+    term.blit = function(text, text_color, bg_color)
+        for i = 1, #text do
+            self:updateScreenBuffer(self.virtual_cursor[1], self.virtual_cursor[2], text:sub(i, i), text_color, bg_color)
+            self.virtual_cursor[1] = self.virtual_cursor[1] + 1
+        end
+
+        original_term_blit(text, text_color, bg_color)
+        self:send_screen()
+    end
+
+    ------ Remplacement de term.clearLine() ------
+    --- On efface la ligne de l'écran virtuel
+    local original_term_clear_line = term.clearLine
+
+    term.clearLine = function()
+        for i = 1, term.getSize() do
+            self:updateScreenBuffer(i, self.virtual_cursor[2], " ", term.getTextColor(), term.getBackgroundColor())
+        end
+
+        original_term_clear_line()
+        self:send_screen()
+    end
+
+    ------ Remplacement de term.getCursorPos() ------
+    --- On retourne la position du curseur virtuel
+    local original_term_get_cursor_pos = term.getCursorPos
+
+    term.getCursorPos = function()
+        self.virtual_cursor = {original_term_get_cursor_pos()}
+
+        self:send_screen()
+        return self.virtual_cursor[1], self.virtual_cursor[2]
+    end
+
+    ------ Remplacement de term.scroll(lines) ------
+    --- On scroll l'écran virtuel
+    local original_term_scroll = term.scroll
+
+    term.scroll = function(lines)
+        local screen_x, screen_y = term.getSize()
+        
+        -- Mise à jour de l'écran virtuel en décalant chaque ligne
+        for y = 1, screen_y - lines do
+            self.screenBuffer[y] = self.screenBuffer[y + lines]
+        end
+
+        -- Effacement des lignes qui ne sont plus visibles
+        for y = screen_y - lines + 1, screen_y do
+            self.screenBuffer[y] = {}
+            for x = 1, screen_x do
+                self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
             end
-
-            if self.color_palette[i][1] == bg_rgb[1] and self.color_palette[i][2] == bg_rgb[2] and self.color_palette[i][3] == bg_rgb[3] then
-                bg_color_index = i
-            end
         end
 
-        if text_color_index == 0 then
-            text_color_index = #self.color_palette + 1
-            table.insert(self.color_palette, text_rgb)
-        end
-
-        if bg_color_index == 0 then
-            bg_color_index = #self.color_palette + 1
-            table.insert(self.color_palette, bg_rgb)
-        end
-
-        self.screenBuffer[y][x] = {char:byte(), text_color_index, bg_color_index}
-
+        original_term_scroll(lines)
+        self:send_screen()
     end
 
-    -- Sauvegarde de la fonction originale term.write
-    local originalWrite = term.write
-    _G.global_originalWrite = originalWrite
-
-    -- Remplacement de term.write
-    term.write = function(str_to_write)
-        local x, y = term.getCursorPos()
-        local textColor = term.getTextColor()
-        local bgColor = term.getBackgroundColor()
-
-        for i = 1, #str_to_write do
-            local char = str_to_write:sub(i, i)
-            updateScreenBuffer(x, y, char, textColor, bgColor)
-            x = x + 1
-        end
-
-        originalWrite(str_to_write)
-
-        if not self.ws then
-            return
-        end
-
-        local value_to_send = textutils.serializeJSON({
-            event = "client-computer_message",
-            data = {
-                screen = self.screenBuffer,
-                color_palette = self.color_palette,
-            },
-            channel = self.channel
-        })
-
-        self.ws.send( value_to_send )
-    end
-
-    local screen_x, screen_y = term.getSize()
-    for y = 1, screen_y do
-        for x = 1, screen_x do
-            self.screenBuffer[y] = self.screenBuffer[y] or {}
-            self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
-        end
-    end
 end
 
 --[[
