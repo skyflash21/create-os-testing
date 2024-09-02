@@ -103,6 +103,8 @@ function Thread_manager:loadModule(module_name, version, module)
         module:run(self.session_id)
     end
 
+    module:init(self.session_id)
+
     table.insert(self.modules_toAdd, { coroutine.create(module_function), module_name, version })
 end
 

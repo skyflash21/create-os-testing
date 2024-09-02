@@ -123,12 +123,18 @@ onMounted(() => {
             const connectedComputers = JSON.parse(
                 localStorage.getItem('connectedComputers')
             );
-            connectedComputers.push(user);
-            localStorage.setItem('connectedComputers', JSON.stringify(connectedComputers));
+
+            // check if the user is already in the list
+            if (!connectedComputers.find((u) => u.id === user.id)) {
+                connectedComputers.push(user);
+                localStorage.setItem('connectedComputers', JSON.stringify(connectedComputers));
+            }
 
             // Trigger global event for computer update
             const event = new CustomEvent('computer_add', { detail: user });
             window.dispatchEvent(event);
+
+            
         })
         .leaving((user) => {
             // Update the connected computers list in localstorage
@@ -142,26 +148,6 @@ onMounted(() => {
             // Trigger global event for computer update
             const event = new CustomEvent('computer_remove', { detail: user });
             window.dispatchEvent(event);
-        })
-        .listenForWhisper('computer_write', (event) => {
-            console.log("Received computer_write event:", event);
-            window.dispatchEvent(new CustomEvent('computer_write', { detail: event }));
-        })
-        .listenForWhisper('computer_blit', (event) => {
-            console.log("Received computer_blit event:", event);
-            window.dispatchEvent(new CustomEvent('computer_blit', { detail: event }));
-        })
-        .listenForWhisper('computer_clear', (event) => {
-            console.log("Received computer_clear event:", event);
-            window.dispatchEvent(new CustomEvent('computer_clear', { detail: event }));
-        })
-        .listenForWhisper('computer_clearLine', (event) => {
-            console.log("Received computer_clearLine event:", event);
-            window.dispatchEvent(new CustomEvent('computer_clearLine', { detail: event }));
-        })
-        .listenForWhisper('computer_scroll', (event) => {
-            console.log("Received computer_scroll event:", event);
-            window.dispatchEvent(new CustomEvent('computer_scroll', { detail: event }));
         })
         .error((error) => {
             console.error("Erreur:", error);

@@ -38,6 +38,8 @@ Route::middleware([
     Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
     Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
+
+    Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
 });
 
 // Groupe de Routes non protégées par l'authentification

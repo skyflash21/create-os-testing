@@ -1,16 +1,15 @@
-<!-- src/Components/CustomButton.vue -->
 <template>
   <button
     :class="buttonClass"
     :disabled="disabled"
-    @click="$emit('click')"
+    @click="handleClick"
   >
     <slot></slot>
   </button>
 </template>
 
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, computed, defineEmits } from 'vue';
 
 const props = defineProps({
   type: {
@@ -22,6 +21,14 @@ const props = defineProps({
     default: false,
   },
 });
+
+const emit = defineEmits(['click']);
+
+const handleClick = (event) => {
+  event.stopPropagation();
+  event.preventDefault();
+  emit('click');
+};
 
 const buttonClass = computed(() => {
   const baseClasses = 'px-4 py-2 border rounded transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50';

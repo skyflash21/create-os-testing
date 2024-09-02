@@ -247,4 +247,67 @@ class ComputerController extends Controller
         // Return the JSON response
         return response()->json($response);
     }
+
+    /**
+     * Authenticate the computer by id
+     * 
+     * @param Request $request
+     * @param int $computer_id
+     * 
+     */
+    public function auth_computer_id(Request $request, $computer_id){
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $header = $request->header('Authorization');
+        if ($header == null) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        //remove the "Bearer " part of the header
+        $header = substr($header, 7);
+
+        // Get the computer from the token
+        $personal_access_token = PersonalAccessToken::findToken($header);
+
+        if (!$personal_access_token) {
+            return response()->json(['error' => 'Invalid token'], 401);
+        }
+
+        $computer = Computer::where('personal_access_token_id', $personal_access_token->id)->first();
+
+        if (!$computer) {
+            return response()->json(['error' => 'Computer not found', 'token_id' => $personal_access_token->id], 404);
+        }
+        
+        $pusherKey = "7axlwwvifanpbi53vh1z";
+        $pusherSecret = "84ic8pxf3qwctgahtpeu";
+        $channelName = $request->input('channel_name');
+        
+        $socketId = $request->input('socket_id'); 
+
+        $computer->isUser = false;
+
+        $userData = json_encode(["user_id" => $computer->id, "user_info" => $computer]);
+        $stringToSign = "$socketId:$channelName:$userData";
+    
+        // Generate the HMAC SHA256 signature
+        $authSignature = hash_hmac('sha256', $stringToSign, $pusherSecret);
+    
+        // Create the auth string
+        $auth = "$pusherKey:$authSignature";
+    
+        // Prepare the response
+        $response = [
+            'auth' => $auth,
+            'channel_data' => $userData,
+            'channel_name' => $channelName,
+        ];
+    
+        // Return the JSON response
+        return response()->json($response);
+    }
 }

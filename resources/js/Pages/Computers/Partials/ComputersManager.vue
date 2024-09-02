@@ -8,6 +8,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import CustomButton from '@/Components/CustomButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import ComputerCraftTerminal from '@/Components/ComputerCraftTerminal.vue'; // Importez votre composant
 
 const props = defineProps({
   computers: Array,
@@ -15,6 +16,9 @@ const props = defineProps({
 
 const selectedComputer = ref(null);
 const showModal = ref(false);
+
+// Variable pour contrôler la visibilité du terminal
+const showTerminal = ref(false);
 
 const connectedComputers = ref([]); // State to manage connected computers
 
@@ -70,11 +74,18 @@ const cancelDelete = () => {
   showModal.value = false;
 };
 
+// Fonction pour connecter l'ordinateur et afficher le terminal
+const connectComputer = () => {
+  console.log('Connecting computer:', selectedComputer.value);
+  if (selectedComputer.value) {
+    showTerminal.value = true; // Afficher le terminal
+  }
+};
+
 // State for sorting
 const sortKey = ref('id');
 const sortOrder = ref('asc');
 
-// Computed property to sort computers
 const sortedComputers = computed(() => {
   const sorted = [...props.computers].sort((a, b) => {
     if (sortKey.value === 'id') {
@@ -91,7 +102,7 @@ const sortedComputers = computed(() => {
     truncated_name: computer.computer_name.length > 9 
       ? `${computer.computer_name.slice(0, 6)}...` 
       : computer.computer_name,
-    isConnected: connectedComputers.value.includes(computer.computer_id) // Check if the computer is connected
+    isConnected: connectedComputers.value.includes(computer.computer_id)
   }));
 });
 
@@ -114,33 +125,30 @@ const getButtonClass = (key) => {
   };
 };
 
-
-// Listen to the global events
 onMounted(() => {
   window.addEventListener('computer_list', (event) => {
     let $computerList = event.detail;
-    // Only include computers where isUser is false
     connectedComputers.value = $computerList.filter(computer => !computer.isUser).map(computer => computer.id);
   });
 
   window.addEventListener('computer_add', (event) => {
-    console.log('Computer added:', event.detail);
-
-    // If isUser is false, add the computer to the connectedComputers list
     if (!event.detail.isUser) {
       connectedComputers.value = [...connectedComputers.value, event.detail.id];
     }
   });
 
   window.addEventListener('computer_remove', (event) => {
-    console.log('Computer removed:', event.detail);
-
-    // If isUser is false, remove the computer from the connectedComputers list
     if (!event.detail.isUser) {
       connectedComputers.value = connectedComputers.value.filter(id => id !== event.detail.id);
     }
   });
+
+  const temp_connectedComputers = JSON.parse(localStorage.getItem('connectedComputers'));
+  for (let i = 0; i < temp_connectedComputers.length; i++) {
+    connectedComputers.value = [...connectedComputers.value, temp_connectedComputers[i].id];
+  }
 });
+
 </script>
 
 
@@ -240,7 +248,26 @@ onMounted(() => {
   background-color: #ffa500; /* Couleur pour sélectionné */
 }
 
+.terminal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7); /* Assombrit l'arrière-plan */
+  z-index: 1000; /* Assure que la superposition est au-dessus de tout */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
+/* Style pour centrer le terminal à l'écran */
+.terminal-overlay > * {
+  background-color: #2d3748; /* Fond du terminal */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
 
 </style>
 
@@ -300,22 +327,30 @@ onMounted(() => {
     </div>
 
     <!-- Détails et modification -->
-    <!-- Détails et modification -->
     <div class="w-2/3 p-4 bg-gray-800 rounded-lg detail-container">
       <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Détails de l'ordinateur</h2>
 
       <div v-if="selectedComputer" class="info-box">
         <!-- Détails non modifiables -->
         <div class="mb-6 text-white">
-          <p class="text-lg font-medium">ID de l'ordinateur: {{ selectedComputer.computer_id }}</p>
-          <p class="text-sm font-medium">Nom: {{ selectedComputer.computer_name }}</p>
-          <p class="text-sm font-medium">Description: {{ selectedComputer.computer_description }}</p>
-          <p class="text-sm font-medium">Type: {{ selectedComputer.type }}</p>
-          <p class="text-sm font-medium">Avancé: {{ selectedComputer.is_advanced ? 'Oui' : 'Non' }}</p>
-          <p class="text-sm font-medium">Côté Modem Sans Fil: {{ selectedComputer.wireless_modem_side }}</p>
-          <p class="text-sm font-medium">Dernière Utilisation: {{ new Date(selectedComputer.last_used_at).toLocaleDateString() }}</p>
-          <p class="text-sm font-medium">Créé le: {{ new Date(selectedComputer.created_at).toLocaleDateString() }}</p>
-          
+          <div class="flex justify-between">
+            <div>
+              <p class="text-lg font-medium">ID de l'ordinateur: {{ selectedComputer.computer_id }}</p>
+              <p class="text-sm font-medium">Nom: {{ selectedComputer.computer_name }}</p>
+              <p class="text-sm font-medium">Description: {{ selectedComputer.computer_description }}</p>
+              <p class="text-sm font-medium">Type: {{ selectedComputer.type }}</p>
+              <p class="text-sm font-medium">Avancé: {{ selectedComputer.is_advanced ? 'Oui' : 'Non' }}</p>
+              <p class="text-sm font-medium">Côté Modem Sans Fil: {{ selectedComputer.wireless_modem_side }}</p>
+              <p class="text-sm font-medium">Dernière Utilisation: {{ new Date(selectedComputer.last_used_at).toLocaleDateString() }}</p>
+              <p class="text-sm font-medium">Créé le: {{ new Date(selectedComputer.created_at).toLocaleDateString() }}</p>
+            </div>
+            <div>
+                <!-- Bouton de connection a distance -->
+                <CustomButton type="primary" :disabled="!selectedComputer.isConnected" @click="connectComputer">
+                  Connecter
+                </CustomButton>
+            </div>
+          </div>
           <!-- Progress bar -->
           <div class="mt-6">
             <p class="text-lg font-medium">Espace disque utilisé: {{ selectedComputer.used_disk_space }} / {{ selectedComputer.total_disk_space }} bytes</p>
@@ -340,6 +375,7 @@ onMounted(() => {
               <InputError :message="form.errors.description" class="mt-2 text-red-500" />
             </div>
           </div>
+
           <div class="mt-6 flex justify-end space-x-4">
             <!-- Bouton de mise à jour -->
             <CustomButton type="primary" :disabled="form.processing">
@@ -359,6 +395,9 @@ onMounted(() => {
       </div>
     </div>
 
+    <div v-if="showTerminal" class="terminal-overlay">
+      <ComputerCraftTerminal :computerId="selectedComputer.computer_id" @close="showTerminal = false" />
+    </div>
     <!-- Confirmation Modal -->
     <ConfirmationModal
       v-model:show="showModal"

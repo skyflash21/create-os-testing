@@ -256,11 +256,6 @@ local function initialize_computer()
     end
 
     print("Fin de la sequence de chargement des modules")
-    print("Initialisation")
-    for i = 1, #modules do
-        modules[i]:init()
-    end
-    print("Fin de l'initialisation")
     print("Ajout des modules dans le gestionnaire de thread")
     for i = 1, #modules do
         _G.parallel:loadModule(modules[i].name, modules[i].version, modules[i])
