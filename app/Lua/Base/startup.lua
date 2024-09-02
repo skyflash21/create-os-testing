@@ -126,8 +126,6 @@ if response then
     local ok = xpcall(func, error_handler)
 
     if not ok then
-        -- Si une erreur s'est produite, la gestion sera effectuée par error_handler
-        os.shutdown()
     end
 else
     print("Error: " .. http_failing_response.getResponseCode())

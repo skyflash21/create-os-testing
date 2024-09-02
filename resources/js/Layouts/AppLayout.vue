@@ -143,6 +143,9 @@ onMounted(() => {
             const event = new CustomEvent('computer_remove', { detail: user });
             window.dispatchEvent(event);
         })
+        .listenForWhisper('computer_message', (event) => {
+            window.dispatchEvent(new CustomEvent('computer_message', { detail: event }));
+        })
         .error((error) => {
             console.error("Erreur:", error);
         });

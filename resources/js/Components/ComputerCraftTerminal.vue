@@ -1,52 +1,3 @@
-<template>
-  <div>
-    <div class="grid-container">
-      <div
-        class="grid"
-        @keydown="handleKeydown"
-        @keyup="handleKeyup"
-        @mousedown="handleMouseClick"
-        @mouseup="handleMouseUp"
-        @mousemove="handleMouseDrag"
-        @wheel="handleMouseScroll"
-        @paste="handlePaste"
-        tabindex="0"
-        ref="gridElement"
-      >
-        <div
-          v-for="(cell, index) in grid"
-          :key="index"
-          :style="{ backgroundColor: cell.backgroundColor, color: cell.textColor }"
-          class="cell"
-        >
-          {{ cell.char }}
-        </div>
-      </div>
-    </div>
-    
-    <div class="controls">
-      <div class="color-control" @click="selectTextColor">
-        <span>Text Color</span>
-        <div class="color-preview" :style="{ backgroundColor: textColor }"></div>
-      </div>
-      <div class="color-control" @click="selectBackgroundColor">
-        <span>Background Color</span>
-        <div class="color-preview" :style="{ backgroundColor: backgroundColor }"></div>
-      </div>
-    </div>
-
-    <div class="palette">
-      <div
-        v-for="color in paletteColors"
-        :key="color"
-        :style="{ backgroundColor: color }"
-        class="color-swatch"
-        @click="changeColor(color)"
-      ></div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue';
 
@@ -57,7 +8,7 @@ function createGrid() {
   const grid = [];
   for (let i = 0; i < rows * cols; i++) {
     grid.push({
-      char: String.fromCharCode(0x9f),  // Utilisez ici le code du caractère spécifique que vous souhaitez
+      char: String.fromCharCode(0x00),  // Utilisez ici le code du caractère spécifique que vous souhaitez
       textColor: '#FFFFFF', // Couleur du texte
       backgroundColor: '#000000', // Couleur de fond
     });
@@ -97,28 +48,31 @@ function getGridCoordinates(event) {
 }
 
 function handleKeydown(event) {
-  console.log('Keydown event:', event.key);
-
   const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
 
   if (validChars.test(event.key)) {
-    console.log('Char event:', event.key);
-
     if (currentIndex.value >= 0 && currentIndex.value < grid.value.length) {
       grid.value[currentIndex.value].char = event.key;
       grid.value[currentIndex.value].textColor = textColor.value;
       grid.value[currentIndex.value].backgroundColor = backgroundColor.value;
 
-      // Move to the next cell
+      // Move to the next cell, or to the beginning of the next line if at the end of a row
       if ((currentIndex.value + 1) % cols !== 0) {
         currentIndex.value += 1;
-      } else {
-        currentIndex.value += cols - ((currentIndex.value + 1) % cols);
+      } else if (currentIndex.value + 1 < grid.value.length) {
+        currentIndex.value += 1;
       }
     }
   } else {
     event.preventDefault();
   }
+}
+
+const mousePosition = ref({ x: 0, y: 0 });
+
+function updateMousePosition(event) {
+  const { x, y } = getGridCoordinates(event);
+  mousePosition.value = { x, y };
 }
 
 function handleKeyup(event) {
@@ -140,6 +94,8 @@ function handleMouseDrag(event) {
     const { x, y } = getGridCoordinates(event);
     console.log('Mouse drag event at grid:', x, y);
   }
+
+  updateMousePosition(event);
 }
 
 function handleMouseScroll(event) {
@@ -168,14 +124,106 @@ function changeColor(color) {
   }
 }
 
+function decodeAndDisplayScreenBuffer(jsonData) {
+    try {
+        const screenBuffer = jsonData["screen"];
+        const colorPalette = jsonData["color_palette"];
+
+        paletteColors.value = colorPalette.map(rgb => {
+            return `rgb(${rgb.map(c => Math.round(c * 255)).join(',')})`;
+        });
+
+        for (let y = 0; y < screenBuffer.length; y++) {
+            const line = screenBuffer[y];
+            for (let x = 0; x < line.length; x++) {
+                const cell = line[x];
+                const index = y * cols + x;
+
+                const char = String.fromCharCode(cell[0]);
+                const textColor = paletteColors[cell[2]];
+                const backgroundColor = paletteColors[cell[3]];
+
+                if (index >= 0 && index < grid.value.length) {
+                    grid.value[index].char = char;
+                    grid.value[index].textColor = textColor;
+                    grid.value[index].backgroundColor = backgroundColor;
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Failed to parse or display screen buffer:", error);
+    }
+}
+
 onMounted(() => {
   window.addEventListener('resize', handleTermResize);
+
+  window.addEventListener('computer_message', (event) => {
+    if (event.detail ) {
+      decodeAndDisplayScreenBuffer(event.detail);
+    }else{
+      console.log('No data');
+    }
+  });
 });
 
 function handleTermResize(event) {
   console.log('Term resize event:', window.innerWidth, window.innerHeight);
 }
 </script>
+
+<template>
+  <div>
+    <div class="grid-container">
+      <div
+        class="grid"
+        @keydown="handleKeydown"
+        @keyup="handleKeyup"
+        @mousedown="handleMouseClick"
+        @mouseup="handleMouseUp"
+        @mousemove="handleMouseDrag"
+        @wheel="handleMouseScroll"
+        @paste="handlePaste"
+        tabindex="0"
+        ref="gridElement"
+      >
+        <div
+          v-for="(cell, index) in grid"
+          :key="index"
+          :style="{ backgroundColor: cell.backgroundColor, color: cell.textColor }"
+          class="cell"
+        >
+          {{ cell.char }}
+        </div>
+      </div>
+    </div>
+
+    <div class="mouse-position">
+      Mouse Position: X = {{ mousePosition.x }}, Y = {{ mousePosition.y }}
+    </div>
+    
+    <div class="controls">
+      <div class="color-control" @click="selectTextColor">
+        <span>Text Color</span>
+        <div class="color-preview" :style="{ backgroundColor: textColor }"></div>
+      </div>
+      <div class="color-control" @click="selectBackgroundColor">
+        <span>Background Color</span>
+        <div class="color-preview" :style="{ backgroundColor: backgroundColor }"></div>
+      </div>
+    </div>
+
+    <div class="palette">
+      <div
+        v-for="color in paletteColors"
+        :key="color"
+        :style="{ backgroundColor: color }"
+        class="color-swatch"
+        @click="changeColor(color)"
+      ></div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .grid-container {
@@ -203,7 +251,6 @@ function handleTermResize(event) {
   user-select: none; /* Disable text selection */
   overflow: hidden; /* Ensure content does not overflow */
 }
-
 
 .cell {
   width: 10px;  /* Correspond à la largeur d'un caractère */
@@ -268,5 +315,15 @@ function handleTermResize(event) {
 .color-swatch:hover {
   border-color: #FFD700;
   transform: scale(1.1);
+}
+
+.selected {
+  border: 1px solid #FFD700; /* Fine border with a gold color */
+}
+.mouse-position {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #FFFFFF;
+  text-align: center;
 }
 </style>

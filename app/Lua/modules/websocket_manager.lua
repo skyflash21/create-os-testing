@@ -35,6 +35,13 @@ function module.new()
 
     self.members = {}
     self.user = nil
+
+    
+
+    self.virtual_screen = false
+    self.screenBuffer = {}
+    self.color_palette = {{0,0,0}}
+
     return self
 end
 
@@ -45,6 +52,8 @@ end
 function module:init()
     -- Recuperation du modele de message websocket
 end
+
+
 
 --[[
     Methode qui est execute lors de l'appel de la commande run
@@ -66,6 +75,8 @@ function module:run(current_session_id)
 
     print("Connexion au serveur websocket")
 
+    self:switch_to_virtual_screen()
+
     -- Boucle infinie pour gérer les événements
     while true do
         -- Récupération des événements
@@ -81,6 +92,8 @@ function module:run(current_session_id)
             return
         elseif event == "websocket_message" then
             self:handle_websocket_message(arg2)
+        elseif event == "redstone" then
+            print("Redstone event")
         end
 
         -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
@@ -191,6 +204,100 @@ function module:handle_websocket_message(message)
     end
 end
 
+function module:switch_to_virtual_screen()
+
+    self.virtual_screen = true
+
+    -- Conversion des couleurs en 4 bits
+    local colorsMap = {
+        [1] = 0, [2] = 1, [4] = 2, [8] = 3,
+        [16] = 4, [32] = 5, [64] = 6, [128] = 7,
+        [256] = 8, [512] = 9, [1024] = 10, [2048] = 11,
+        [4096] = 12, [8192] = 13, [16384] = 14, [32768] = 15
+    }
+
+    -- Fonction pour mettre à jour le tableau
+    local function updateScreenBuffer(x, y, char, textColor, bgColor)
+        local term_x, term_y = term.getSize()
+
+        if x < 1 or x > term_x or y < 1 or y > term_y then
+            error("Invalid coordinates")
+        end
+
+        self.screenBuffer[y] = self.screenBuffer[y]
+        local text_rgb = {term.getPaletteColor(textColor)}
+        local bg_rgb = {term.getPaletteColor(bgColor)}
+
+        -- search if self.color_palette contains the colors
+        local text_color_index = 0
+        local bg_color_index = 0
+
+        for i = 1, #self.color_palette do
+            if self.color_palette[i][1] == text_rgb[1] and self.color_palette[i][2] == text_rgb[2] and self.color_palette[i][3] == text_rgb[3] then
+                text_color_index = i
+            end
+
+            if self.color_palette[i][1] == bg_rgb[1] and self.color_palette[i][2] == bg_rgb[2] and self.color_palette[i][3] == bg_rgb[3] then
+                bg_color_index = i
+            end
+        end
+
+        if text_color_index == 0 then
+            text_color_index = #self.color_palette + 1
+            table.insert(self.color_palette, text_rgb)
+        end
+
+        if bg_color_index == 0 then
+            bg_color_index = #self.color_palette + 1
+            table.insert(self.color_palette, bg_rgb)
+        end
+
+        self.screenBuffer[y][x] = {char:byte(), text_color_index, bg_color_index}
+
+    end
+
+    -- Sauvegarde de la fonction originale term.write
+    local originalWrite = term.write
+    _G.global_originalWrite = originalWrite
+
+    -- Remplacement de term.write
+    term.write = function(str_to_write)
+        local x, y = term.getCursorPos()
+        local textColor = term.getTextColor()
+        local bgColor = term.getBackgroundColor()
+
+        for i = 1, #str_to_write do
+            local char = str_to_write:sub(i, i)
+            updateScreenBuffer(x, y, char, textColor, bgColor)
+            x = x + 1
+        end
+
+        originalWrite(str_to_write)
+
+        if not self.ws then
+            return
+        end
+
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_message",
+            data = {
+                screen = self.screenBuffer,
+                color_palette = self.color_palette,
+            },
+            channel = self.channel
+        })
+
+        self.ws.send( value_to_send )
+    end
+
+    local screen_x, screen_y = term.getSize()
+    for y = 1, screen_y do
+        for x = 1, screen_x do
+            self.screenBuffer[y] = self.screenBuffer[y] or {}
+            self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
+        end
+    end
+end
 
 --[[
     Methode qui est execute lors de l'appel de la commande run
