@@ -35,7 +35,6 @@ function createGrid() {
 }
 
 const grid = ref(createGrid());
-const currentIndex = ref(0);
 
 const gridElement = ref(null);
 
@@ -61,7 +60,7 @@ function handleKeydown(event) {
 
     if (validChars.test(event.key)) {
         window.Echo.private(`computer-${props.computerId}`).whisper('char', {
-            key: event.key,
+            char: event.key,
             computer_id: props.computerId
         });
 
@@ -77,6 +76,8 @@ function handleKeydown(event) {
             computer_id: props.computerId
         });
     }
+    event.preventDefault();
+
 }
 
 const mousePosition = ref({ x: 0, y: 0 });
@@ -88,16 +89,10 @@ function updateMousePosition(event) {
 
 function handleKeyup(event) {
     
-    const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
-
-    if (validChars.test(event.key)) {
-        window.Echo.private(`computer-${props.computerId}`).whisper('key_Up', {
-            key: event.key,
-            computer_id: props.computerId
-        });
-    } else {
-        event.preventDefault();
-    }
+    window.Echo.private(`computer-${props.computerId}`).whisper('key_Up', {
+        key: event.key,
+        computer_id: props.computerId
+    });
 }
 
 function handleMouseClick(event) {
@@ -167,6 +162,10 @@ onMounted(() => {
         }
         
         const { text, cursorX, cursorY, textColor, backgroundColor } = data;
+
+        if (cursorX < 1 || cursorX > cols || cursorY < 1 || cursorY > rows) {
+            return;
+        }
 
         const converted_textColor = `rgb(${textColor.map((c) => Math.round(c * 255)).join(",")})`;
         const converted_backgroundColor = `rgb(${backgroundColor.map((c) => Math.round(c * 255)).join(",")})`;
@@ -268,6 +267,16 @@ onMounted(() => {
                 });
             }
         }
+    }).listenForWhisper('computer_switchToRealScreen', (event) => {
+        
+        const { n, computer_id } = event;
+
+        if (computer_id !== props.computerId) {
+            return;
+        }
+
+        switchToRealScreen(false);
+        console.log("Switched to real screen");
     })
 
     function handleTermResize(event) {
@@ -287,9 +296,12 @@ onMounted(() => {
 
 let display_mode = "Real Screen";
 
-function switchToRealScreen() {
-    // Emit an event to switch to the real screen on the private chanel computer-{computerId}
-    window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
+function switchToRealScreen(warn_client = true) {
+
+    if (warn_client) {
+        // Emit an event to switch to the real screen on the private chanel computer-{computerId}
+        window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
+    }
 
     grid.value.forEach((cell) => {
         cell.char = String.fromCharCode(0x00);

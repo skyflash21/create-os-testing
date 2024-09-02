@@ -108,6 +108,17 @@ function module:init(current_session_id)
         elseif message.event == "pusher:subscription_succeeded" or message.event == "pusher_internal:subscription_succeeded" then
             print("Inscription reussie : " .. self.channel)
             self.registered = true
+
+            -- Envoyer le changement de mode via WebSocket
+            local value_to_send = textutils.serializeJSON({
+                event = "client-computer_switchToRealScreen",
+                data = {
+                    computer_id = os.getComputerID()
+                },
+                channel = self.channel
+            })
+
+            self.ws.send(value_to_send)
         end
     end
 end
@@ -147,6 +158,17 @@ function module:run(current_session_id)
         elseif event == "terminate" then
             if self.mode ~= "real" then
                 self:switch_to_real_screen()
+
+                -- Envoyer le changement de mode via WebSocket
+                local value_to_send = textutils.serializeJSON({
+                    event = "client-computer_switchToRealScreen",
+                    data = {
+                        computer_id = os.getComputerID()
+                    },
+                    channel = self.channel
+                })
+
+                self.ws.send(value_to_send)
             end
         end
 
@@ -199,6 +221,8 @@ function module:handle_websocket_message(message)
         term.clear()
         term.setCursorPos(1, 1)
         print("Switch to real screen")
+    elseif message.event == "client-char" then
+        os.queueEvent("char", message.data.char)
     elseif message.event == "client-key" then
         os.queueEvent("key", message.data.key)
     elseif message.event == "client-key_up" then
