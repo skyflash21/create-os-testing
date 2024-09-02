@@ -1,329 +1,396 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue";
 
 const rows = 19;
 const cols = 51;
 
 function createGrid() {
-  const grid = [];
-  for (let i = 0; i < rows * cols; i++) {
-    grid.push({
-      char: String.fromCharCode(0x00),  // Utilisez ici le code du caractère spécifique que vous souhaitez
-      textColor: '#FFFFFF', // Couleur du texte
-      backgroundColor: '#000000', // Couleur de fond
-    });
-  }
-  return grid;
+    const grid = [];
+    for (let i = 0; i < rows * cols; i++) {
+        grid.push({
+            char: String.fromCharCode(0x00), // Utilisez ici le code du caractère spécifique que vous souhaitez
+            textColor: "#FFFFFF", // Couleur du texte
+            backgroundColor: "#000000", // Couleur de fond
+        });
+    }
+    return grid;
 }
 
 const grid = ref(createGrid());
 const currentIndex = ref(0);
 
-const textColor = ref('#FFFFFF');
-const backgroundColor = ref('#000000');
-const selectedColorType = ref('text');
+const textColor = ref("#FFFFFF");
+const backgroundColor = ref("#000000");
+const selectedColorType = ref("text");
 
 const paletteColors = ref([
-  '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF',
-  '#FFFF00', '#FF00FF', '#00FFFF', '#808080', '#800000'
+    "#FFFFFF",
+    "#000000",
+    "#FF0000",
+    "#00FF00",
+    "#0000FF",
+    "#FFFF00",
+    "#FF00FF",
+    "#00FFFF",
+    "#808080",
+    "#800000",
 ]);
 
 const gridElement = ref(null);
 
 function getGridCoordinates(event) {
-  const gridRect = gridElement.value.getBoundingClientRect();
-  const cellWidth = gridRect.width / cols;
-  const cellHeight = gridRect.height / rows;
+    const gridRect = gridElement.value.getBoundingClientRect();
+    const cellWidth = gridRect.width / cols;
+    const cellHeight = gridRect.height / rows;
 
-  let x = Math.floor((event.clientX - gridRect.left) / cellWidth) + 1;
-  let y = Math.floor((event.clientY - gridRect.top) / cellHeight) + 1;
+    let x = Math.floor((event.clientX - gridRect.left) / cellWidth) + 1;
+    let y = Math.floor((event.clientY - gridRect.top) / cellHeight) + 1;
 
-  // Ensure x and y are within bounds
-  if (x < 1) x = 1;
-  if (y < 1) y = 1;
-  if (x > cols) x = cols;
-  if (y > rows) y = rows;
+    // Ensure x and y are within bounds
+    if (x < 1) x = 1;
+    if (y < 1) y = 1;
+    if (x > cols) x = cols;
+    if (y > rows) y = rows;
 
-  return { x, y };
+    return { x, y };
 }
 
 function handleKeydown(event) {
-  const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
+    const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
 
-  if (validChars.test(event.key)) {
-    if (currentIndex.value >= 0 && currentIndex.value < grid.value.length) {
-      grid.value[currentIndex.value].char = event.key;
-      grid.value[currentIndex.value].textColor = textColor.value;
-      grid.value[currentIndex.value].backgroundColor = backgroundColor.value;
+    if (validChars.test(event.key)) {
+        if (currentIndex.value >= 0 && currentIndex.value < grid.value.length) {
+            grid.value[currentIndex.value].char = event.key;
+            grid.value[currentIndex.value].textColor = textColor.value;
+            grid.value[currentIndex.value].backgroundColor =
+                backgroundColor.value;
 
-      // Move to the next cell, or to the beginning of the next line if at the end of a row
-      if ((currentIndex.value + 1) % cols !== 0) {
-        currentIndex.value += 1;
-      } else if (currentIndex.value + 1 < grid.value.length) {
-        currentIndex.value += 1;
-      }
+            // Move to the next cell, or to the beginning of the next line if at the end of a row
+            if ((currentIndex.value + 1) % cols !== 0) {
+                currentIndex.value += 1;
+            } else if (currentIndex.value + 1 < grid.value.length) {
+                currentIndex.value += 1;
+            }
+        }
+    } else {
+        event.preventDefault();
     }
-  } else {
-    event.preventDefault();
-  }
 }
 
 const mousePosition = ref({ x: 0, y: 0 });
 
 function updateMousePosition(event) {
-  const { x, y } = getGridCoordinates(event);
-  mousePosition.value = { x, y };
+    const { x, y } = getGridCoordinates(event);
+    mousePosition.value = { x, y };
 }
 
 function handleKeyup(event) {
-  console.log('Keyup event:', event.key);
+    console.log("Keyup event:", event.key);
 }
 
 function handleMouseClick(event) {
-  const { x, y } = getGridCoordinates(event);
-  console.log('Mouse click event at grid:', x, y);
+    const { x, y } = getGridCoordinates(event);
+    console.log("Mouse click event at grid:", x, y);
 }
 
 function handleMouseUp(event) {
-  const { x, y } = getGridCoordinates(event);
-  console.log('Mouse up event at grid:', x, y);
+    const { x, y } = getGridCoordinates(event);
+    console.log("Mouse up event at grid:", x, y);
 }
 
 function handleMouseDrag(event) {
-  if (event.buttons === 1) { // Only log if the left mouse button is held down
-    const { x, y } = getGridCoordinates(event);
-    console.log('Mouse drag event at grid:', x, y);
-  }
+    if (event.buttons === 1) {
+        // Only log if the left mouse button is held down
+        const { x, y } = getGridCoordinates(event);
+        console.log("Mouse drag event at grid:", x, y);
+    }
 
-  updateMousePosition(event);
+    updateMousePosition(event);
 }
 
 function handleMouseScroll(event) {
-  const { x, y } = getGridCoordinates(event);
-  console.log('Mouse scroll event at grid:', x, y, 'Scroll delta:', event.deltaY);
+    const { x, y } = getGridCoordinates(event);
+    console.log(
+        "Mouse scroll event at grid:",
+        x,
+        y,
+        "Scroll delta:",
+        event.deltaY
+    );
 }
 
 function handlePaste(event) {
-  const paste = (event.clipboardData || window.clipboardData).getData('text');
-  console.log('Paste event:', paste);
+    const paste = (event.clipboardData || window.clipboardData).getData("text");
+    console.log("Paste event:", paste);
 }
 
 function selectTextColor() {
-  selectedColorType.value = 'text';
+    selectedColorType.value = "text";
 }
 
 function selectBackgroundColor() {
-  selectedColorType.value = 'background';
+    selectedColorType.value = "background";
 }
 
 function changeColor(color) {
-  if (selectedColorType.value === 'text') {
-    textColor.value = color;
-  } else if (selectedColorType.value === 'background') {
-    backgroundColor.value = color;
-  }
-}
-
-function decodeAndDisplayScreenBuffer(jsonData) {
-    try {
-        const screenBuffer = jsonData["screen"];
-        const colorPalette = jsonData["color_palette"];
-
-        paletteColors.value = colorPalette.map(rgb => {
-            return `rgb(${rgb.map(c => Math.round(c * 255)).join(',')})`;
-        });
-
-        for (let y = 0; y < screenBuffer.length; y++) {
-            const line = screenBuffer[y];
-            for (let x = 0; x < line.length; x++) {
-                const cell = line[x];
-                const index = y * cols + x;
-
-                const char = String.fromCharCode(cell[0]);
-                const textColor = paletteColors[cell[2]];
-                const backgroundColor = paletteColors[cell[3]];
-
-                if (index >= 0 && index < grid.value.length) {
-                    grid.value[index].char = char;
-                    grid.value[index].textColor = textColor;
-                    grid.value[index].backgroundColor = backgroundColor;
-                }
-            }
-        }
-    } catch (error) {
-        console.error("Failed to parse or display screen buffer:", error);
+    if (selectedColorType.value === "text") {
+        textColor.value = color;
+    } else if (selectedColorType.value === "background") {
+        backgroundColor.value = color;
     }
 }
 
 onMounted(() => {
-  window.addEventListener('resize', handleTermResize);
+    window.addEventListener("resize", handleTermResize);
 
-  window.addEventListener('computer_message', (event) => {
-    if (event.detail ) {
-      decodeAndDisplayScreenBuffer(event.detail);
-    }else{
-      console.log('No data');
+    window.addEventListener("computer_write", (event) => {
+        const data = event.detail;
+        const { text, cursorX, cursorY } = data;
+
+        // Calculate the start index in the grid
+        const startIndex = (cursorY - 1) * cols + (cursorX - 1);
+
+        // Update the grid with the text at the specified position
+        for (let i = 0; i < text.length; i++) {
+            if (startIndex + i < grid.value.length) {
+                grid.value[startIndex + i].char = text[i];
+                grid.value[startIndex + i].textColor = textColor.value;
+                grid.value[startIndex + i].backgroundColor = backgroundColor.value;
+            }
+        }
+    });
+
+    window.addEventListener("computer_blit", (event) => {
+        const data = event.detail;
+        const { text, fg, bg, cursorX, cursorY } = data;
+
+        // Calculate the start index in the grid
+        const startIndex = (cursorY - 1) * cols + (cursorX - 1);
+
+        // Update the grid with the text, foreground, and background colors
+        for (let i = 0; i < text.length; i++) {
+            if (startIndex + i < grid.value.length) {
+                grid.value[startIndex + i].char = text[i];
+                grid.value[startIndex + i].textColor = fg[i] || textColor.value;
+                grid.value[startIndex + i].backgroundColor = bg[i] || backgroundColor.value;
+            }
+        }
+    });
+
+    window.addEventListener("computer_clear", () => {
+        // Clear the entire grid
+        grid.value.forEach((cell) => {
+            cell.char = String.fromCharCode(0x00);
+            cell.textColor = "#FFFFFF";
+            cell.backgroundColor = "#000000";
+        });
+    });
+
+    window.addEventListener("computer_clearLine", (event) => {
+        const { cursorY } = event.detail;
+
+        // Clear the specified line
+        const startIndex = (cursorY - 1) * cols;
+        for (let i = 0; i < cols; i++) {
+            grid.value[startIndex + i].char = String.fromCharCode(0x00);
+            grid.value[startIndex + i].textColor = "#FFFFFF";
+            grid.value[startIndex + i].backgroundColor = "#000000";
+        }
+    });
+
+    window.addEventListener("computer_scroll", (event) => {
+        const { n } = event.detail;
+
+        if (n > 0) {
+            // Scroll up
+            grid.value.splice(0, n * cols);
+            for (let i = 0; i < n * cols; i++) {
+                grid.value.push({
+                    char: String.fromCharCode(0x00),
+                    textColor: "#FFFFFF",
+                    backgroundColor: "#000000"
+                });
+            }
+        } else if (n < 0) {
+            // Scroll down
+            grid.value.splice(n * cols);
+            for (let i = 0; i < -n * cols; i++) {
+                grid.value.unshift({
+                    char: String.fromCharCode(0x00),
+                    textColor: "#FFFFFF",
+                    backgroundColor: "#000000"
+                });
+            }
+        }
+    });
+
+    function handleTermResize(event) {
+        console.log("Term resize event:", window.innerWidth, window.innerHeight);
     }
-  });
 });
-
-function handleTermResize(event) {
-  console.log('Term resize event:', window.innerWidth, window.innerHeight);
-}
 </script>
 
 <template>
-  <div>
-    <div class="grid-container">
-      <div
-        class="grid"
-        @keydown="handleKeydown"
-        @keyup="handleKeyup"
-        @mousedown="handleMouseClick"
-        @mouseup="handleMouseUp"
-        @mousemove="handleMouseDrag"
-        @wheel="handleMouseScroll"
-        @paste="handlePaste"
-        tabindex="0"
-        ref="gridElement"
-      >
-        <div
-          v-for="(cell, index) in grid"
-          :key="index"
-          :style="{ backgroundColor: cell.backgroundColor, color: cell.textColor }"
-          class="cell"
-        >
-          {{ cell.char }}
+    <div>
+        <div class="grid-container">
+            <div
+                class="grid"
+                @keydown="handleKeydown"
+                @keyup="handleKeyup"
+                @mousedown="handleMouseClick"
+                @mouseup="handleMouseUp"
+                @mousemove="handleMouseDrag"
+                @wheel="handleMouseScroll"
+                @paste="handlePaste"
+                tabindex="0"
+                ref="gridElement"
+            >
+                <div
+                    v-for="(cell, index) in grid"
+                    :key="index"
+                    :style="{
+                        backgroundColor: cell.backgroundColor,
+                        color: cell.textColor,
+                    }"
+                    class="cell"
+                >
+                    {{ cell.char }}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div class="mouse-position">
-      Mouse Position: X = {{ mousePosition.x }}, Y = {{ mousePosition.y }}
-    </div>
-    
-    <div class="controls">
-      <div class="color-control" @click="selectTextColor">
-        <span>Text Color</span>
-        <div class="color-preview" :style="{ backgroundColor: textColor }"></div>
-      </div>
-      <div class="color-control" @click="selectBackgroundColor">
-        <span>Background Color</span>
-        <div class="color-preview" :style="{ backgroundColor: backgroundColor }"></div>
-      </div>
-    </div>
+        <div class="mouse-position">
+            Mouse Position: X = {{ mousePosition.x }}, Y = {{ mousePosition.y }}
+        </div>
 
-    <div class="palette">
-      <div
-        v-for="color in paletteColors"
-        :key="color"
-        :style="{ backgroundColor: color }"
-        class="color-swatch"
-        @click="changeColor(color)"
-      ></div>
+        <div class="controls">
+            <div class="color-control" @click="selectTextColor">
+                <span>Text Color</span>
+                <div
+                    class="color-preview"
+                    :style="{ backgroundColor: textColor }"
+                ></div>
+            </div>
+            <div class="color-control" @click="selectBackgroundColor">
+                <span>Background Color</span>
+                <div
+                    class="color-preview"
+                    :style="{ backgroundColor: backgroundColor }"
+                ></div>
+            </div>
+        </div>
+
+        <div class="palette">
+            <div
+                v-for="color in paletteColors"
+                :key="color"
+                :style="{ backgroundColor: color }"
+                class="color-swatch"
+                @click="changeColor(color)"
+            ></div>
+        </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
 .grid-container {
-  margin-top: 20px;
-  overflow: hidden;
-  width: fit-content; /* Adjust to the content */
-  height: fit-content; /* Adjust to the content */
-  border-radius: 5px;
-  border: 10px solid #B0B03F;
+    margin-top: 20px;
+    overflow: hidden;
+    width: fit-content; /* Adjust to the content */
+    height: fit-content; /* Adjust to the content */
+    border-radius: 5px;
+    border: 10px solid #b0b03f;
 }
 
 @font-face {
-  font-family: 'CustomFont';
-  src: url('/storage/fonts/HDfont.ttf') format('truetype');
+    font-family: "CustomFont";
+    src: url("/storage/fonts/HDfont.ttf") format("truetype");
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: repeat(51, 10px);
-  grid-template-rows: repeat(19, 16px);
-  margin: 0; /* Remove any default margins */
-  background-color: #000000;
-  outline: none;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  user-select: none; /* Disable text selection */
-  overflow: hidden; /* Ensure content does not overflow */
+    display: grid;
+    grid-template-columns: repeat(51, 10px);
+    grid-template-rows: repeat(19, 16px);
+    margin: 0; /* Remove any default margins */
+    background-color: #000000;
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    user-select: none; /* Disable text selection */
+    overflow: hidden; /* Ensure content does not overflow */
 }
 
 .cell {
-  width: 10px;  /* Correspond à la largeur d'un caractère */
-  height: 16px; /* Ajustement de la hauteur pour éliminer le gap */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 16px;  /* Ajustez cette valeur pour que le caractère remplisse mieux la cellule */
-  font-family: 'CustomFont', monospace;
-  color: #FFFFFF;
-  background-color: #000000;
-  line-height: 16px; /* Alignement de la hauteur de ligne à celle de la cellule */
-  padding: 0;
-  margin: 0;
-  vertical-align: middle; /* Assure un alignement vertical au centre */
+    width: 10px; /* Correspond à la largeur d'un caractère */
+    height: 16px; /* Ajustement de la hauteur pour éliminer le gap */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px; /* Ajustez cette valeur pour que le caractère remplisse mieux la cellule */
+    font-family: "CustomFont", monospace;
+    color: #ffffff;
+    background-color: #000000;
+    line-height: 16px; /* Alignement de la hauteur de ligne à celle de la cellule */
+    padding: 0;
+    margin: 0;
+    vertical-align: middle; /* Assure un alignement vertical au centre */
 }
 
 .controls {
-  display: flex;
-  margin-top: 20px;
-  justify-content: center;
-  gap: 20px;
+    display: flex;
+    margin-top: 20px;
+    justify-content: center;
+    gap: 20px;
 }
 
 .color-control {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
 }
 
 .color-control span {
-  margin-right: 10px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #FFFFFF;
+    margin-right: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
 }
 
 .color-preview {
-  width: 30px;
-  height: 30px;
-  border: 2px solid #888;
-  border-radius: 5px;
+    width: 30px;
+    height: 30px;
+    border: 2px solid #888;
+    border-radius: 5px;
 }
 
 .palette {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 20px;
-  justify-content: center;
-  gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    justify-content: center;
+    gap: 10px;
 }
 
 .color-swatch {
-  width: 40px;
-  height: 40px;
-  cursor: pointer;
-  border-radius: 5px;
-  border: 2px solid transparent;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 2px solid transparent;
+    transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 .color-swatch:hover {
-  border-color: #FFD700;
-  transform: scale(1.1);
+    border-color: #ffd700;
+    transform: scale(1.1);
 }
 
 .selected {
-  border: 1px solid #FFD700; /* Fine border with a gold color */
+    border: 1px solid #ffd700; /* Fine border with a gold color */
 }
 .mouse-position {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #FFFFFF;
-  text-align: center;
+    margin-top: 10px;
+    font-size: 16px;
+    color: #ffffff;
+    text-align: center;
 }
 </style>

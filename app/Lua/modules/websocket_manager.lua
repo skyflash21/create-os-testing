@@ -12,6 +12,7 @@
         - run() -> methode qui est execute elle contient une boucle infinie qui permet de gerer les evenements
         - command_run(type, arguments) -> methode qui est execute lors de l'appel de la commande run
 ]]--
+local expect = dofile("/rom/modules/main/cc/expect.lua").expect
 
 local module = {}
 module.__index = module
@@ -35,22 +36,6 @@ function module.new()
 
     self.members = {}
     self.user = nil
-
-    
-
-    self.virtual_screen = false
-    self.virtual_cursor = {1, 1}
-    self.color_palette = {{0,0,0}}
-
-    
-    self.screenBuffer = {}
-    local screen_x, screen_y = term.getSize()
-    for y = 1, screen_y do
-        for x = 1, screen_x do
-            self.screenBuffer[y] = self.screenBuffer[y] or {}
-            self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
-        end
-    end
 
     return self
 end
@@ -217,167 +202,165 @@ function module:handle_websocket_message(message)
     end
 end
 
-function module:updateScreenBuffer(x, y, char, textColor, bgColor)
-    local term_x, term_y = term.getSize()
-
-    if x < 1 or x > term_x or y < 1 or y > term_y then
-        error("Invalid coordinates")
-    end
-
-    self.screenBuffer[y] = self.screenBuffer[y]
-    local text_rgb = {term.getPaletteColor(textColor)}
-    local bg_rgb = {term.getPaletteColor(bgColor)}
-
-    -- search if self.color_palette contains the colors
-    local text_color_index = 0
-    local bg_color_index = 0
-
-    for i = 1, #self.color_palette do
-        if self.color_palette[i][1] == text_rgb[1] and self.color_palette[i][2] == text_rgb[2] and self.color_palette[i][3] == text_rgb[3] then
-            text_color_index = i
-        end
-
-        if self.color_palette[i][1] == bg_rgb[1] and self.color_palette[i][2] == bg_rgb[2] and self.color_palette[i][3] == bg_rgb[3] then
-            bg_color_index = i
-        end
-    end
-
-    if text_color_index == 0 then
-        text_color_index = #self.color_palette + 1
-        table.insert(self.color_palette, text_rgb)
-    end
-
-    if bg_color_index == 0 then
-        bg_color_index = #self.color_palette + 1
-        table.insert(self.color_palette, bg_rgb)
-    end
-
-    self.screenBuffer[y][x] = {char:byte(), text_color_index, bg_color_index}
-
-end
-
-function module:send_screen()
-    if not self.ws then
-        return
-    end
-
-    local value_to_send = textutils.serializeJSON({
-        event = "client-computer_message",
-        data = {
-            screen = self.screenBuffer,
-            color_palette = self.color_palette,
-        },
-        channel = self.channel
-    })
-
-    self.ws.send( value_to_send )
-end
-
 function module:switch_to_virtual_screen()
+    local width, height = term.getSize()
+    local scaleX, scaleY = 1, 1
 
-    self.virtual_screen = true
-    term.setCursorPos(1, 1)
-    self.virtual_cursor = {1, 1}
-    term.clear()
+    -- Initialisation des variables
+    local cursorX, cursorY = 1, 1
+    local screenBuffer = {}
+    local foregroundBuffer = {}
+    local backgroundBuffer = {}
     
-
-    --------------------- Remplacer les fonctions de base afin de garder l'écran virtuel à jour ---------------------
-    
-    ------ Remplacement de term.clear() ------
-    --- On efface l'écran virtuel
-    local orginial_term_clear = term.clear
-    term.clear = function()
-        self.screenBuffer = {}
-        orginial_term_clear()
-        self:send_screen()
+    -- Initialiser les tampons (buffers) pour chaque ligne de l'écran
+    for y = 1, height do
+        screenBuffer[y] = (" "):rep(width)
+        foregroundBuffer[y] = ("\xF0"):rep(width)
+        backgroundBuffer[y] = ("\xF0"):rep(width)
     end
 
-    ------ Remplacement de term.setCursorPos(x, y) ------
-    --- On met à jour la position du curseur virtuel
-    local original_set_cursor_pos = term.setCursorPos
-    term.setCursorPos = function(x, y)
-        self.virtual_cursor = {x, y}
-        original_set_cursor_pos(x, y)
-        self:send_screen()
-    end
+    function term.write(text)
+        text = tostring(text)
+        expect(1, text, "string")
+        -- Logique pour écrire du texte à l'écran
 
-    ------ Remplacement de term.write(text) ------
-    --- On met à jour l'écran virtuel
-    local original_term_write = term.write
+        -- Envoi de la mise à jour via websocket
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_write",
+            data = {
+                text = text,
+                cursorX = cursorX,
+                cursorY = cursorY 
+            },
+            channel = self.channel
+        })
 
-    term.write = function(text)
-        for i = 1, #text do
-            local text_color, bg_color = term.getTextColor(), term.getBackgroundColor()
-            self:updateScreenBuffer(self.virtual_cursor[1], self.virtual_cursor[2], text:sub(i, i), text_color, bg_color)
-            self.virtual_cursor[1] = self.virtual_cursor[1] + 1
-        end
+        self.ws.send( value_to_send )
 
-        original_term_write(text)
-        self:send_screen()
-    end
-
-    ------ Remplacement de term.blit(text, text_color, bg_color) ------
-    --- On met à jour l'écran virtuel
-    local original_term_blit = term.blit
-
-    term.blit = function(text, text_color, bg_color)
-        for i = 1, #text do
-            self:updateScreenBuffer(self.virtual_cursor[1], self.virtual_cursor[2], text:sub(i, i), text_color, bg_color)
-            self.virtual_cursor[1] = self.virtual_cursor[1] + 1
-        end
-
-        original_term_blit(text, text_color, bg_color)
-        self:send_screen()
-    end
-
-    ------ Remplacement de term.clearLine() ------
-    --- On efface la ligne de l'écran virtuel
-    local original_term_clear_line = term.clearLine
-
-    term.clearLine = function()
-        for i = 1, term.getSize() do
-            self:updateScreenBuffer(i, self.virtual_cursor[2], " ", term.getTextColor(), term.getBackgroundColor())
-        end
-
-        original_term_clear_line()
-        self:send_screen()
-    end
-
-    ------ Remplacement de term.getCursorPos() ------
-    --- On retourne la position du curseur virtuel
-    local original_term_get_cursor_pos = term.getCursorPos
-
-    term.getCursorPos = function()
-        self.virtual_cursor = {original_term_get_cursor_pos()}
-
-        self:send_screen()
-        return self.virtual_cursor[1], self.virtual_cursor[2]
-    end
-
-    ------ Remplacement de term.scroll(lines) ------
-    --- On scroll l'écran virtuel
-    local original_term_scroll = term.scroll
-
-    term.scroll = function(lines)
-        local screen_x, screen_y = term.getSize()
         
-        -- Mise à jour de l'écran virtuel en décalant chaque ligne
-        for y = 1, screen_y - lines do
-            self.screenBuffer[y] = self.screenBuffer[y + lines]
-        end
 
-        -- Effacement des lignes qui ne sont plus visibles
-        for y = screen_y - lines + 1, screen_y do
-            self.screenBuffer[y] = {}
-            for x = 1, screen_x do
-                self.screenBuffer[y][x] = {string.byte(" "), 0, 0}
+        -- update cursor position
+        
+        cursorX = cursorX + #text
+
+    end
+
+    function term.blit(text, fg, bg)
+        expect(1, text, "string")
+        expect(2, fg, "string")
+        expect(3, bg, "string")
+    
+        -- Vérifier et ajuster la longueur des arguments
+        local textLen = #text
+        if #fg < textLen then fg = fg .. fg:sub(-1):rep(textLen - #fg) end
+        if #bg < textLen then bg = bg .. bg:sub(-1):rep(textLen - #bg) end
+    
+        -- Logique pour blitter (afficher) le texte à l'écran avec les couleurs spécifiées
+        term.blit(text, fg, bg)
+    
+        -- Envoi de la mise à jour via websocket
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_blit",
+            data = {
+                text = text,
+                fg = fg,
+                bg = bg,
+                cursorX = cursorX,
+                cursorY = cursorY
+            },
+            channel = self.channel
+        })
+
+        self.ws.send( value_to_send )
+    end
+    
+
+    function term.clear()
+        for y = 1, height do
+            screenBuffer[y], foregroundBuffer[y] = (" "):rep(width), string.char(0xF0):rep(width)
+        end
+        
+
+        -- Envoi de la mise à jour via websocket
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_clear",
+            data = {},
+            channel = self.channel
+        })
+
+        self.ws.send( value_to_send )
+    end
+
+    function term.clearLine()
+        if cursorY >= 1 and cursorY <= height then
+            screenBuffer[cursorY], foregroundBuffer[cursorY] = (" "):rep(width), string.char(0xF0):rep(width)
+        end
+        
+
+        -- Envoi de la mise à jour via websocket
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_clearLine",
+            data = {
+                cursorY = cursorY
+            },
+            channel = self.channel
+        })
+
+        self.ws.send( value_to_send )
+    end
+
+    function term.getCursorPos()
+        return cursorX, cursorY
+    end
+
+    function term.setCursorPos(x, y)
+        expect(1, x, "number")
+        expect(2, y, "number")
+        cursorX, cursorY = math.floor(x), math.floor(y)
+    end
+
+    function term.scroll(n)
+        expect(1, n, "number")
+    
+        -- Logique pour faire défiler l'écran de n lignes
+        if n > 0 then
+            -- Supprimer les premières n lignes et ajouter n nouvelles lignes vides en bas
+            for i = 1, height - n do
+                screenBuffer[i] = screenBuffer[i + n]
+                foregroundBuffer[i] = foregroundBuffer[i + n]
+                backgroundBuffer[i] = backgroundBuffer[i + n]
+            end
+            for i = height - n + 1, height do
+                screenBuffer[i] = (" "):rep(width)
+                foregroundBuffer[i] = ("\xF0"):rep(width)
+                backgroundBuffer[i] = ("\xF0"):rep(width)
+            end
+        elseif n < 0 then
+            -- Supprimer les dernières n lignes et ajouter n nouvelles lignes vides en haut
+            for i = height, 1 - n, -1 do
+                screenBuffer[i] = screenBuffer[i + n]
+                foregroundBuffer[i] = foregroundBuffer[i + n]
+                backgroundBuffer[i] = backgroundBuffer[i + n]
+            end
+            for i = 1, -n do
+                screenBuffer[i] = (" "):rep(width)
+                foregroundBuffer[i] = ("\xF0"):rep(width)
+                backgroundBuffer[i] = ("\xF0"):rep(width)
             end
         end
-
-        original_term_scroll(lines)
-        self:send_screen()
+    
+        -- Envoi de la mise à jour via WebSocket
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_scroll",
+            data = {
+                n = n
+            },
+            channel = self.channel
+        })
+    
+        self.ws.send(value_to_send)
     end
-
+    
 end
 
 --[[

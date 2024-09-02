@@ -143,8 +143,25 @@ onMounted(() => {
             const event = new CustomEvent('computer_remove', { detail: user });
             window.dispatchEvent(event);
         })
-        .listenForWhisper('computer_message', (event) => {
-            window.dispatchEvent(new CustomEvent('computer_message', { detail: event }));
+        .listenForWhisper('computer_write', (event) => {
+            console.log("Received computer_write event:", event);
+            window.dispatchEvent(new CustomEvent('computer_write', { detail: event }));
+        })
+        .listenForWhisper('computer_blit', (event) => {
+            console.log("Received computer_blit event:", event);
+            window.dispatchEvent(new CustomEvent('computer_blit', { detail: event }));
+        })
+        .listenForWhisper('computer_clear', (event) => {
+            console.log("Received computer_clear event:", event);
+            window.dispatchEvent(new CustomEvent('computer_clear', { detail: event }));
+        })
+        .listenForWhisper('computer_clearLine', (event) => {
+            console.log("Received computer_clearLine event:", event);
+            window.dispatchEvent(new CustomEvent('computer_clearLine', { detail: event }));
+        })
+        .listenForWhisper('computer_scroll', (event) => {
+            console.log("Received computer_scroll event:", event);
+            window.dispatchEvent(new CustomEvent('computer_scroll', { detail: event }));
         })
         .error((error) => {
             console.error("Erreur:", error);
