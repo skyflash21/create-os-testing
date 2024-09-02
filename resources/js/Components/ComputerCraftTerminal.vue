@@ -18,23 +18,7 @@ function createGrid() {
 
 const grid = ref(createGrid());
 const currentIndex = ref(0);
-
-const textColor = ref("#FFFFFF");
-const backgroundColor = ref("#000000");
 const selectedColorType = ref("text");
-
-const paletteColors = ref([
-    "#FFFFFF",
-    "#000000",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#FF00FF",
-    "#00FFFF",
-    "#808080",
-    "#800000",
-]);
 
 const gridElement = ref(null);
 
@@ -124,28 +108,15 @@ function handlePaste(event) {
     console.log("Paste event:", paste);
 }
 
-function selectTextColor() {
-    selectedColorType.value = "text";
-}
-
-function selectBackgroundColor() {
-    selectedColorType.value = "background";
-}
-
-function changeColor(color) {
-    if (selectedColorType.value === "text") {
-        textColor.value = color;
-    } else if (selectedColorType.value === "background") {
-        backgroundColor.value = color;
-    }
-}
-
 onMounted(() => {
     window.addEventListener("resize", handleTermResize);
 
     window.addEventListener("computer_write", (event) => {
         const data = event.detail;
-        const { text, cursorX, cursorY } = data;
+        const { text, cursorX, cursorY, textColor, backgroundColor } = data;
+
+        const converted_textColor = `rgb(${textColor.map((c) => Math.round(c * 255)).join(",")})`;
+        const converted_backgroundColor = `rgb(${backgroundColor.map((c) => Math.round(c * 255)).join(",")})`;
 
         // Calculate the start index in the grid
         const startIndex = (cursorY - 1) * cols + (cursorX - 1);
@@ -154,8 +125,8 @@ onMounted(() => {
         for (let i = 0; i < text.length; i++) {
             if (startIndex + i < grid.value.length) {
                 grid.value[startIndex + i].char = text[i];
-                grid.value[startIndex + i].textColor = textColor.value;
-                grid.value[startIndex + i].backgroundColor = backgroundColor.value;
+                grid.value[startIndex + i].textColor = converted_textColor;
+                grid.value[startIndex + i].backgroundColor = converted_backgroundColor;
             }
         }
     });
@@ -170,9 +141,12 @@ onMounted(() => {
         // Update the grid with the text, foreground, and background colors
         for (let i = 0; i < text.length; i++) {
             if (startIndex + i < grid.value.length) {
+                const fgColor = `rgb(${fg[i].map((c) => Math.round(c * 255)).join(",")})`;
+                const bgColor = `rgb(${bg[i].map((c) => Math.round(c * 255)).join(",")})`;
+
                 grid.value[startIndex + i].char = text[i];
-                grid.value[startIndex + i].textColor = fg[i] || textColor.value;
-                grid.value[startIndex + i].backgroundColor = bg[i] || backgroundColor.value;
+                grid.value[startIndex + i].textColor = fgColor;
+                grid.value[startIndex + i].backgroundColor = bgColor;
             }
         }
     });
@@ -261,33 +235,6 @@ onMounted(() => {
 
         <div class="mouse-position">
             Mouse Position: X = {{ mousePosition.x }}, Y = {{ mousePosition.y }}
-        </div>
-
-        <div class="controls">
-            <div class="color-control" @click="selectTextColor">
-                <span>Text Color</span>
-                <div
-                    class="color-preview"
-                    :style="{ backgroundColor: textColor }"
-                ></div>
-            </div>
-            <div class="color-control" @click="selectBackgroundColor">
-                <span>Background Color</span>
-                <div
-                    class="color-preview"
-                    :style="{ backgroundColor: backgroundColor }"
-                ></div>
-            </div>
-        </div>
-
-        <div class="palette">
-            <div
-                v-for="color in paletteColors"
-                :key="color"
-                :style="{ backgroundColor: color }"
-                class="color-swatch"
-                @click="changeColor(color)"
-            ></div>
         </div>
     </div>
 </template>

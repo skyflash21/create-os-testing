@@ -92,6 +92,9 @@ function module:run(current_session_id)
         elseif event == "redstone" then
             print("Redstone event : " .. redstone_int)
             redstone_int = redstone_int + 1
+        elseif event == "terminate" then
+            term.setTextColor(colors.red)
+            print("Passage de la couleur du texte en rouge")
         end
 
         -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
@@ -222,28 +225,31 @@ function module:switch_to_virtual_screen()
     function term.write(text)
         text = tostring(text)
         expect(1, text, "string")
+    
+        -- Obtenir les couleurs actuelles du texte et du fond
+        local textColor = {term.getPaletteColor(term.getTextColor())}
+        local backgroundColor = {term.getPaletteColor(term.getBackgroundColor())}
+    
         -- Logique pour écrire du texte à l'écran
-
         -- Envoi de la mise à jour via websocket
         local value_to_send = textutils.serializeJSON({
             event = "client-computer_write",
             data = {
                 text = text,
                 cursorX = cursorX,
-                cursorY = cursorY 
+                cursorY = cursorY,
+                textColor = textColor,
+                backgroundColor = backgroundColor
             },
             channel = self.channel
         })
-
-        self.ws.send( value_to_send )
-
-        
-
-        -- update cursor position
-        
+    
+        self.ws.send(value_to_send)
+    
+        -- Mettre à jour la position du curseur
         cursorX = cursorX + #text
-
     end
+    
 
     function term.blit(text, fg, bg)
         expect(1, text, "string")
@@ -255,25 +261,30 @@ function module:switch_to_virtual_screen()
         if #fg < textLen then fg = fg .. fg:sub(-1):rep(textLen - #fg) end
         if #bg < textLen then bg = bg .. bg:sub(-1):rep(textLen - #bg) end
     
-        -- Logique pour blitter (afficher) le texte à l'écran avec les couleurs spécifiées
-        term.blit(text, fg, bg)
+        -- Préparer les couleurs pour l'envoi
+        local fgColors = {}
+        local bgColors = {}
+    
+        for i = 1, #text do
+            table.insert(fgColors, {term.getPaletteColor(2 ^ (string.byte(fg, i) - 1))})
+            table.insert(bgColors, {term.getPaletteColor(2 ^ (string.byte(bg, i) - 1))})
+        end
     
         -- Envoi de la mise à jour via websocket
         local value_to_send = textutils.serializeJSON({
             event = "client-computer_blit",
             data = {
                 text = text,
-                fg = fg,
-                bg = bg,
+                fg = fgColors,
+                bg = bgColors,
                 cursorX = cursorX,
                 cursorY = cursorY
             },
             channel = self.channel
         })
-
-        self.ws.send( value_to_send )
-    end
     
+        self.ws.send(value_to_send)
+    end
 
     function term.clear()
         for y = 1, height do
@@ -361,6 +372,9 @@ function module:switch_to_virtual_screen()
         self.ws.send(value_to_send)
     end
     
+
+    term.clear()
+    term.setCursorPos(1, 1)
 end
 
 --[[
