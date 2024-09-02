@@ -203,11 +203,9 @@ local function register_computer(c_name, c_description)
         else
             print("Erreur in data: " .. data)
         end
-
-        -- save in file
-        local file = fs.open("error.txt", "w")
-        file.write(data)
-        file.close()
+        
+        settings.clear()
+        settings.save()
 
         read()
         os.shutdown()

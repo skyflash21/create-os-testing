@@ -208,19 +208,19 @@ function module:handle_websocket_message(message)
 
         term.clear()
         term.setCursorPos(1, 1)
-        print("Switch to virtual screen")
+        os.queueEvent("redraw_screen")
     elseif message.event == "client-switchToHybridScreen" then
         self:switch_to_hybrid_screen()
 
         term.clear()
         term.setCursorPos(1, 1)
-        print("Switch to hybrid screen")
+        os.queueEvent("redraw_screen")
     elseif message.event == "client-switchToRealScreen" then
         self:switch_to_real_screen()
 
         term.clear()
         term.setCursorPos(1, 1)
-        print("Switch to real screen")
+        os.queueEvent("redraw_screen")
     elseif message.event == "client-char" then
         os.queueEvent("char", message.data.char)
     elseif message.event == "client-key" then

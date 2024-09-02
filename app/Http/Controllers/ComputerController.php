@@ -75,6 +75,11 @@ class ComputerController extends Controller
             return response()->json(['error' => 'Computer already exists.'], 409);
         }
 
+        // check if the personal access token is already used by another computer
+        if (Computer::where('personal_access_token_id', $personal_access_token->id)->exists()) {
+            return response()->json(['error' => 'Personal access token already used by another computer.'], 409);
+        }
+
         // Create a new computer
         $computer = Computer::create([
             'id' => $request->id,

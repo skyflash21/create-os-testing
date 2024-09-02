@@ -62,16 +62,34 @@ const removeNotification = (id) => {
     notifications.value = notifications.value.filter((n) => n.id !== id);
 };
 
+
+const computer_logo = ref("/storage/Documentation/computer.png");
+const advanced_computer_logo = ref("/storage/Documentation/advanced_computer.png");
+
 onMounted(() => {
     window.Echo.private(`App.Models.User.${page.props.auth.user.id}`).listen(
         "ComputerRegisteredEvent",
         (event) => {
-            console.log("Received ComputerRegisteredEvent:", event);
             showNotification(
                 `Computer Registered: ${event.computer.id}`,
                 event.computer.name,
-                "/storage/Documentation/ComputerLogo.png"
+                event.computer.advanced ? computer_logo.value : advanced_computer_logo.value
             );
+
+            // Update the connected computers list in localstorage
+            const connectedComputers = JSON.parse(
+                localStorage.getItem('connectedComputers')
+            );
+
+            // check if the user is already in the list
+            if (!connectedComputers.find((u) => u.id === event.computer.id)) {
+                connectedComputers.push(event.computer);
+            }
+
+            localStorage.setItem('connectedComputers', JSON.stringify(connectedComputers));
+
+            // Trigger global event for computer update
+            window.dispatchEvent(new CustomEvent('computer_registered', { detail: event.computer }));
         }
     );
 
@@ -92,14 +110,6 @@ onMounted(() => {
                 `${user.name} a quitté la salle.`,
                 user.name,
                 user.profile_photo_url
-            );
-        })
-        .listenForWhisper('TypingEvent', (event) => {
-            console.log("Received TypingEvent:", event.name);
-            showNotification(
-                `${event.name} is typing...`,
-                event.name,
-                '/path-to-some-icon.png'
             );
         })
         .error((error) => {

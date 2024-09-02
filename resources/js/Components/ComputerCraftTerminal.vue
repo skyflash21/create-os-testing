@@ -331,7 +331,7 @@ function switchToHybridScreen() {
 }
 
 function close() {
-    window.Echo.private(`computer-${props.computerId}`).whisper('closed', {});
+    window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
     emit('close');
 }
 

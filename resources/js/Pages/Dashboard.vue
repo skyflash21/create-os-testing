@@ -3,8 +3,6 @@ import { usePage } from "@inertiajs/vue3";
 import Echo from 'laravel-echo';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-import ComputerCraftTerminal from '@/Components/ComputerCraftTerminal.vue';
-
 const page = usePage();
 
 const test_wisper = () => {
@@ -25,9 +23,6 @@ const test_wisper = () => {
                 Console ComputerCraft
             </h2>
         </template>
-        <div class="image-container mt-10">
-            <ComputerCraftTerminal />
-        </div>
     </AppLayout>
 
     
