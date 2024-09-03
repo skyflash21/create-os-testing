@@ -170,6 +170,8 @@ function module:run(current_session_id)
 
                 self.ws.send(value_to_send)
             end
+        elseif event == "char" then
+            term.write(arg1)
         end
 
         -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
