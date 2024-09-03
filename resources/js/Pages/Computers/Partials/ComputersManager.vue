@@ -14,31 +14,36 @@ const props = defineProps({
     computers: Array,
 });
 
-const selectedComputer = ref(null);
-const showModal = ref(false);
-
+// Images pour les ordinateurs
 const computer_logo = ref("/storage/Documentation/computer.png");
 const advanced_computer_logo = ref(
     "/storage/Documentation/advanced_computer.png"
 );
 
-// Variable pour contrôler la visibilité du terminal
+// State pour afficher les sous composants
 const showTerminal = ref(false);
+const showModal = ref(false);
 
+// State pour gérer les ordinateurs
+const selectedComputer = ref(null);
 const connectedComputers = ref([]); // State to manage connected computers
 
+// Définition des formulaires
 const form = useForm({
     _method: "PUT",
     id: "",
     name: "",
     description: "",
 });
-
 const deleteForm = useForm({
     _method: "DELETE",
     id: "",
 });
 
+/**
+ * Fonctions pour sélectionner un ordinateur
+ * @param {Object} computer
+ */
 const selectComputer = (computer) => {
     selectedComputer.value = computer;
     form.id = computer.computer_id;
@@ -46,6 +51,9 @@ const selectComputer = (computer) => {
     form.description = computer.computer_description;
 };
 
+/**
+ * Fonction pour mettre à jour les informations de l'ordinateur
+ */
 const handleSubmit = () => {
     form.put(route("computers.update", form.id), {
         onSuccess: () => {
@@ -57,10 +65,26 @@ const handleSubmit = () => {
     });
 };
 
+
+//////////// Collection de fonction ayant trait à la suppression d'un ordinateur ////////////
+
+/**
+ * Fonction pour initier la suppression d'un ordinateur, ouverture du modal de confirmation
+ */
 const initiateDelete = () => {
     showModal.value = true;
 };
 
+/**
+ * Fonction pour annuler la suppression d'un ordinateur (fermeture du modal)
+ */
+const cancelDelete = () => {
+    showModal.value = false;
+};
+
+/**
+ * Fonction résultante du modal de confirmation pour la suppression d'un ordinateur
+ */
 const confirmDelete = () => {
     deleteForm.delete(route("computers.destroy", form.id), {
         onSuccess: () => {
@@ -77,9 +101,7 @@ const confirmDelete = () => {
     });
 };
 
-const cancelDelete = () => {
-    showModal.value = false;
-};
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 // Fonction pour connecter l'ordinateur et afficher le terminal
 const connectComputer = () => {
@@ -89,10 +111,16 @@ const connectComputer = () => {
     }
 };
 
-// State for sorting
+////////////////// Collection de fonction ayant trait au tri des ordinateurs //////////////////
+
+// Définition de l'état pour le tri des ordinateurs
 const sortKey = ref("id");
 const sortOrder = ref("asc");
 
+/**
+ * Fonction pour trier les ordinateurs par clé
+ * @param {String} key
+ */
 const sortedComputers = computed(() => {
     const sorted = [...props.computers].sort((a, b) => {
         if (sortKey.value === "id") {
@@ -116,6 +144,10 @@ const sortedComputers = computed(() => {
     }));
 });
 
+/**
+ * Fonction pour trier les ordinateurs par clé
+ * @param {String} key
+ */
 const sortBy = (key) => {
     if (sortKey.value === key) {
         // No change in sortOrder if same key is selected
@@ -124,18 +156,53 @@ const sortBy = (key) => {
     }
 };
 
+/**
+ * Fonction pour changer l'ordre de tri
+ */
 const toggleSortOrder = () => {
     sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
 };
 
-const getButtonClass = (key) => {
-    return {
-        "px-3 py-1 text-gray-400 hover:text-white border-none rounded": true,
-        "text-white": sortKey.value === key,
-    };
+// Définition de l'état pour le type de tri
+let sort_type = "Croissant";
+
+/**
+ * Fonction pour obtenir la classe du bouton Croissant/Décroissant
+ * @param {String} sortKey
+ */
+const getButtonClassOrder = () => {
+    if (sortOrder.value === "desc") {
+        sort_type = "Décroissant";
+        return "px-3 py-1 text-gray-400 hover:text-white border-none rounded text-gray-400";
+    } else {
+        sort_type = "Croissant";
+        return "px-3 py-1 text-gray-400 hover:text-white border-none rounded text-gray-400";
+    }
 };
 
+/**
+ * Fonction pour obtenir la classe du bouton de tri
+ * @param {String} key
+ */
+const getButtonClass = (key) => {
+    if (sortKey.value === key) {
+        return "px-3 py-1 text-gray-400 hover:text-white border-none rounded text-white";
+    } else {
+        return "px-3 py-1 text-gray-400 hover:text-white border-none rounded text-gray-400";
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////// Collection de fonction ayant trait à la gestion des évenement ////////////////
+
 onMounted(() => {
+
+    /////////////////////////// Gestion des évenements liés aux ordinateurs //////////////////////
+
+    /**
+     * Gestion de l'événement de liste des ordinateurs
+     */
     window.addEventListener("computer_list", (event) => {
         let $computerList = event.detail;
         connectedComputers.value = $computerList
@@ -143,6 +210,9 @@ onMounted(() => {
             .map((computer) => computer.id);
     });
 
+    /**
+     * Gestion de l'événement de connexion d'un ordinateur
+     */
     window.addEventListener("computer_add", (event) => {
         if (!event.detail.isUser) {
             connectedComputers.value = [
@@ -152,6 +222,9 @@ onMounted(() => {
         }
     });
 
+    /**
+     * Gestion de l'événement de déconnexion d'un ordinateur
+     */
     window.addEventListener("computer_remove", (event) => {
         if (!event.detail.isUser) {
             connectedComputers.value = connectedComputers.value.filter(
@@ -172,10 +245,16 @@ onMounted(() => {
         }
     });
 
+    window.addEventListener("computer_registered", (event) => {
+      window.location.reload();
+    });
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+
+    // Récupération des ordinateurs connectés depuis le stockage local
     const temp_connectedComputers = JSON.parse(
         localStorage.getItem("connectedComputers")
     );
-
     if (temp_connectedComputers) {
         for (let i = 0; i < temp_connectedComputers.length; i++) {
             connectedComputers.value = [
@@ -185,163 +264,31 @@ onMounted(() => {
         }
     }
 
-    window.addEventListener("computer_registered", (event) => {
-      window.location.reload();
-    });
+
 });
 </script>
-
-<style scope>
-/* Style pour les zones des ordinateurs et des détails */
-.bg-gray-800 {
-    background-color: #2d3748; /* Couleur de fond gris foncé */
-}
-
-.bg-gray-700 {
-    background-color: #4a5568; /* Couleur de fond gris encore plus foncé */
-}
-
-.border-r {
-    border-right: 1px solid #4a5568; /* Bordure droite gris foncé */
-}
-
-.rounded-lg {
-    border-radius: 0.75rem; /* Coins plus arrondis */
-}
-
-.shadow-lg {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Ombre plus marquée pour effet moderne */
-}
-
-.max-h-[calc(100vh-8rem)] {
-    max-height: calc(100vh - 8rem); /* Hauteur maximale pour les détails */
-}
-
-.overflow-y-auto {
-    overflow-y: auto; /* Défilement vertical automatique */
-}
-
-/* Styles spécifiques pour les zones */
-.list-container {
-    background: linear-gradient(
-        180deg,
-        rgba(45, 51, 72, 0.8) 0%,
-        rgba(45, 51, 72, 0.5) 100%
-    );
-    border: 1px solid #4a5568;
-}
-
-.detail-container {
-    background: linear-gradient(
-        180deg,
-        rgba(45, 51, 72, 0.8) 0%,
-        rgba(45, 51, 72, 0.5) 100%
-    );
-    border: 1px solid #4a5568;
-}
-
-/* Styles pour les zones d'info avec des bordures arrondies */
-.info-box {
-    background-color: #1a202c; /* Arrière-plan très sombre */
-    border: 1px solid #2d3748; /* Bordure légèrement plus claire */
-    border-radius: 0.75rem; /* Coins arrondis */
-    padding: 1.5rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Ombre subtile */
-}
-
-.scrollbar-custom {
-    scrollbar-width: thin; /* Taille de la barre de défilement (pour Firefox) */
-    scrollbar-color: #4a5568 #2d3748; /* Couleur de la barre et de la piste (pour Firefox) */
-}
-
-/* Pour Webkit (Chrome, Safari) */
-.scrollbar-custom::-webkit-scrollbar {
-    width: 8px; /* Largeur de la barre de défilement */
-}
-
-.scrollbar-custom::-webkit-scrollbar-track {
-    background: #2d3748; /* Couleur de la piste de défilement */
-    border-radius: 10px; /* Coins arrondis de la piste */
-}
-
-.scrollbar-custom::-webkit-scrollbar-thumb {
-    background: #4a5568; /* Couleur de la barre de défilement */
-    border-radius: 10px; /* Coins arrondis de la barre */
-}
-
-.scrollbar-custom::-webkit-scrollbar-thumb:hover {
-    background: #6b7280; /* Couleur de la barre au survol */
-}
-
-/* Badge pour l'état des ordinateurs */
-.computer-badge {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #00ff00; /* Couleur par défaut pour connecté */
-}
-
-.computer-badge.disconnected {
-    background-color: #ff0000; /* Couleur pour déconnecté */
-}
-
-.computer-badge.selected {
-    background-color: #ffa500; /* Couleur pour sélectionné */
-}
-
-.terminal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.7); /* Assombrit l'arrière-plan */
-    z-index: 1000; /* Assure que la superposition est au-dessus de tout */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Style pour centrer le terminal à l'écran */
-.terminal-overlay > * {
-    background-color: #2d3748; /* Fond du terminal */
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-}
-</style>
 
 <template>
     <div class="flex h-screen p-6 bg-gray-900">
         <!-- Liste des ordinateurs -->
         <div class="w-1/2 p-2 border-r bg-gray-800 rounded-lg">
-            <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">
-                Liste des ordinateurs
-            </h2>
+            <!-- Titre de la liste -->
+            <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Liste des ordinateurs</h2>
 
             <!-- Contrôles de tri -->
-            <div class="mb-4 flex space-x-2">
-                <button @click="sortBy('id')" :class="getButtonClass('id')">
-                    Trier par ID
-                </button>
-                <button @click="sortBy('name')" :class="getButtonClass('name')">
-                    Trier par Nom
-                </button>
-                <button
-                    @click="toggleSortOrder"
-                    class="px-3 py-1 text-gray-400 hover:text-white border-none rounded"
-                >
-                    {{
-                        sortOrder.value === "asc" ? "Croissant" : "Décroissant"
-                    }}
-                </button>
+            <div class="mb-4 flex">
+                <!-- Contrôle du type de tri -->
+                <div class="flex items-center space-x-2">
+                    <button @click="sortBy('id')" :class="getButtonClass('id')">Trier par ID</button>
+                    <button @click="sortBy('name')" :class="getButtonClass('name')">Trier par Nom</button>
+                </div>
+                <!-- Contrôle de l'ordre de tri-->
+                <div class="flex items-center space-x-2 flex-grow justify-end">
+                    <button @click="toggleSortOrder" :class="getButtonClassOrder()" >{{sort_type}}</button>
+                </div>
             </div>
 
-            <div
-                class="grid grid-cols-3 p-2 gap-5 overflow-y-auto overflow-x-hidden scrollbar-custom max-h-[calc(100vh-10rem)]"
+            <div class="grid grid-cols-3 p-2 gap-5 overflow-y-auto overflow-x-hidden scrollbar-custom max-h-[calc(100vh-10rem)]"
             >
                 <div
                     v-for="computer in sortedComputers"
@@ -581,3 +528,128 @@ onMounted(() => {
         </ConfirmationModal>
     </div>
 </template>
+
+
+<style scope>
+
+/* Style pour les zones des ordinateurs et des détails */
+.bg-gray-800 {
+    background-color: #2d3748; /* Couleur de fond gris foncé */
+}
+
+.bg-gray-700 {
+    background-color: #4a5568; /* Couleur de fond gris encore plus foncé */
+}
+
+.border-r {
+    border-right: 1px solid #4a5568; /* Bordure droite gris foncé */
+}
+
+.rounded-lg {
+    border-radius: 0.75rem; /* Coins plus arrondis */
+}
+
+.shadow-lg {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Ombre plus marquée pour effet moderne */
+}
+
+.max-h-[calc(100vh-8rem)] {
+    max-height: calc(100vh - 8rem); /* Hauteur maximale pour les détails */
+}
+
+.overflow-y-auto {
+    overflow-y: auto; /* Défilement vertical automatique */
+}
+
+/* Styles spécifiques pour les zones */
+.list-container {
+    background: linear-gradient(
+        180deg,
+        rgba(45, 51, 72, 0.8) 0%,
+        rgba(45, 51, 72, 0.5) 100%
+    );
+    border: 1px solid #4a5568;
+}
+
+.detail-container {
+    background: linear-gradient(
+        180deg,
+        rgba(45, 51, 72, 0.8) 0%,
+        rgba(45, 51, 72, 0.5) 100%
+    );
+    border: 1px solid #4a5568;
+}
+
+/* Styles pour les zones d'info avec des bordures arrondies */
+.info-box {
+    background-color: #1a202c; /* Arrière-plan très sombre */
+    border: 1px solid #2d3748; /* Bordure légèrement plus claire */
+    border-radius: 0.75rem; /* Coins arrondis */
+    padding: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Ombre subtile */
+}
+
+.scrollbar-custom {
+    scrollbar-width: thin; /* Taille de la barre de défilement (pour Firefox) */
+    scrollbar-color: #4a5568 #2d3748; /* Couleur de la barre et de la piste (pour Firefox) */
+}
+
+/* Pour Webkit (Chrome, Safari) */
+.scrollbar-custom::-webkit-scrollbar {
+    width: 8px; /* Largeur de la barre de défilement */
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+    background: #2d3748; /* Couleur de la piste de défilement */
+    border-radius: 10px; /* Coins arrondis de la piste */
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #4a5568; /* Couleur de la barre de défilement */
+    border-radius: 10px; /* Coins arrondis de la barre */
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; /* Couleur de la barre au survol */
+}
+
+/* Badge pour l'état des ordinateurs */
+.computer-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #00ff00; /* Couleur par défaut pour connecté */
+}
+
+.computer-badge.disconnected {
+    background-color: #ff0000; /* Couleur pour déconnecté */
+}
+
+.computer-badge.selected {
+    background-color: #ffa500; /* Couleur pour sélectionné */
+}
+
+.terminal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7); /* Assombrit l'arrière-plan */
+    z-index: 1000; /* Assure que la superposition est au-dessus de tout */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Style pour centrer le terminal à l'écran */
+.terminal-overlay > * {
+    background-color: #2d3748; /* Fond du terminal */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+</style>
