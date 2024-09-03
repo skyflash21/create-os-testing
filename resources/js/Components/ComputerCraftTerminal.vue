@@ -181,8 +181,6 @@ onMounted(() => {
                 grid.value[startIndex + i].backgroundColor = converted_backgroundColor;
             }
         }
-
-        console.log("Received write event:", data);
     })
     .listenForWhisper('computer_blit', (event) => {
         
