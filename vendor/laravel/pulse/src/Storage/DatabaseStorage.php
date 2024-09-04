@@ -84,7 +84,7 @@ class DatabaseStorage implements Storage
         $averageChunks = $this->preaggregateAverages(collect($averages)) // @phpstan-ignore argument.templateType, argument.templateType
             ->chunk($this->config->get('pulse.storage.database.chunk'));
 
-        $valueChunks = $this // @phpstan-ignore argument.templateType
+        $valueChunks = $this // @phpstan-ignore method.nonObject
             ->collapseValues($values)
             ->when(
                 $this->requiresManualKeyHash(),
@@ -92,7 +92,7 @@ class DatabaseStorage implements Storage
                     ...($attributes = $value->attributes()),
                     'key_hash' => md5($attributes['key']),
                 ]),
-                fn ($values) => $values->map->attributes() // @phpstan-ignore method.notFound
+                fn ($values) => $values->map->attributes()
             )
             ->chunk($this->config->get('pulse.storage.database.chunk'));
 

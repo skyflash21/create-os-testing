@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted,computed,nextTick,defineProps, defineEmits } from "vue";
 import { usePage } from "@inertiajs/vue3";
 
 // Ajoutez une prop pour l'ID de l'ordinateur
@@ -7,17 +7,15 @@ const props = defineProps({
   computerId: {
     type: Number,
     required: true,
-  }
+  },
+  is_advanced: {
+    type: Number,
+    required: true,
+  },
 });
 
 // Définir l'événement `emit` pour déclencher l'événement `close`
 const emit = defineEmits(['close']);
-
-const page = usePage();
-
-watch(() => props.computerId, (newId) => {
-  console.log("Computer ID changed:", newId);
-});
 
 const rows = 19;
 const cols = 51;
@@ -148,150 +146,155 @@ function handlePaste(event) {
 }
 
 onMounted(() => {
-    window.addEventListener("resize", handleTermResize);
+    nextTick(() => {
+        // Open the private channel for the computer
+        window.Echo.private(`computer-` + props.computerId)
+        .listenForWhisper('computer_write', (event) => {
+            
+            const data = event;
 
-    // Open the private channel for the computer
-    window.Echo.private(`computer-` + props.computerId)
-    .listenForWhisper('computer_write', (event) => {
-        
-        const data = event;
-
-        if (data.computer_id !== props.computerId) {
-            console.log("Ignoring write event for computer:", data.computer_id , "Current computer:", props.computerId);
-            return;
-        }
-        
-        const { text, cursorX, cursorY, textColor, backgroundColor } = data;
-
-        if (cursorX < 1 || cursorX > cols || cursorY < 1 || cursorY > rows) {
-            return;
-        }
-
-        const converted_textColor = `rgb(${textColor.map((c) => Math.round(c * 255)).join(",")})`;
-        const converted_backgroundColor = `rgb(${backgroundColor.map((c) => Math.round(c * 255)).join(",")})`;
-
-        // Calculate the start index in the grid
-        const startIndex = (cursorY - 1) * cols + (cursorX - 1);
-
-        // Update the grid with the text at the specified position
-        for (let i = 0; i < text.length; i++) {
-            if (startIndex + i < grid.value.length) {
-                grid.value[startIndex + i].char = text[i];
-                grid.value[startIndex + i].textColor = converted_textColor;
-                grid.value[startIndex + i].backgroundColor = converted_backgroundColor;
+            if (data.computer_id !== props.computerId) {
+                console.log("Ignoring write event for computer:", data.computer_id , "Current computer:", props.computerId);
+                return;
             }
-        }
-    })
-    .listenForWhisper('computer_blit', (event) => {
-        
-        const data = event;
+            
+            const { text, cursorX, cursorY, textColor, backgroundColor } = data;
 
-        if (data.computer_id !== props.computerId) {
-            return;
-        }
-
-        const { text, fg, bg, cursorX, cursorY } = data;
-
-        // Calculate the start index in the grid
-        const startIndex = (cursorY - 1) * cols + (cursorX - 1);
-
-        // Update the grid with the text, foreground, and background colors
-        for (let i = 0; i < text.length; i++) {
-            if (startIndex + i < grid.value.length) {
-                const fgColor = `rgb(${fg[i].map((c) => Math.round(c * 255)).join(",")})`;
-                const bgColor = `rgb(${bg[i].map((c) => Math.round(c * 255)).join(",")})`;
-
-                grid.value[startIndex + i].char = text[i];
-                grid.value[startIndex + i].textColor = fgColor;
-                grid.value[startIndex + i].backgroundColor = bgColor;
+            if (cursorX < 1 || cursorX > cols || cursorY < 1 || cursorY > rows) {
+                return;
             }
-        }
-    })
-    .listenForWhisper('computer_clear', (event) => {
-        
-        const { computer_id } = event;
 
-        if (computer_id !== props.computerId) {
-            return;
-        }
+            const converted_textColor = `rgb(${textColor.map((c) => Math.round(c * 255)).join(",")})`;
+            const converted_backgroundColor = `rgb(${backgroundColor.map((c) => Math.round(c * 255)).join(",")})`;
 
-        // Clear the entire grid
-        grid.value.forEach((cell) => {
-            cell.char = String.fromCharCode(0x00);
-            cell.textColor = "#FFFFFF";
-            cell.backgroundColor = "#000000";
-        });
-    })
-    .listenForWhisper('computer_clearLine', (event) => {
-        
-        const { cursorY, computer_id } = event;
+            // Calculate the start index in the grid
+            const startIndex = (cursorY - 1) * cols + (cursorX - 1);
 
-        if (computer_id !== props.computerId) {
-            return;
-        }
-
-        // Clear the specified line
-        const startIndex = (cursorY - 1) * cols;
-        for (let i = 0; i < cols; i++) {
-            grid.value[startIndex + i].char = String.fromCharCode(0x00);
-            grid.value[startIndex + i].textColor = "#FFFFFF";
-            grid.value[startIndex + i].backgroundColor = "#000000";
-        }
-    })
-    .listenForWhisper('computer_scroll', (event) => {
-        
-        const { n, computer_id } = event;
-
-        if (computer_id !== props.computerId) {
-            return;
-        }
-
-        if (n > 0) {
-            // Scroll up
-            grid.value.splice(0, n * cols);
-            for (let i = 0; i < n * cols; i++) {
-                grid.value.push({
-                    char: String.fromCharCode(0x00),
-                    textColor: "#FFFFFF",
-                    backgroundColor: "#000000"
-                });
+            // Update the grid with the text at the specified position
+            for (let i = 0; i < text.length; i++) {
+                if (startIndex + i < grid.value.length) {
+                    grid.value[startIndex + i].char = text[i];
+                    grid.value[startIndex + i].textColor = converted_textColor;
+                    grid.value[startIndex + i].backgroundColor = converted_backgroundColor;
+                }
             }
-        } else if (n < 0) {
-            // Scroll down
-            grid.value.splice(n * cols);
-            for (let i = 0; i < -n * cols; i++) {
-                grid.value.unshift({
-                    char: String.fromCharCode(0x00),
-                    textColor: "#FFFFFF",
-                    backgroundColor: "#000000"
-                });
+        })
+        .listenForWhisper('computer_blit', (event) => {
+            
+            const data = event;
+
+            if (data.computer_id !== props.computerId) {
+                return;
             }
+
+            const { text, fg, bg, cursorX, cursorY } = data;
+
+            // Calculate the start index in the grid
+            const startIndex = (cursorY - 1) * cols + (cursorX - 1);
+
+            // Update the grid with the text, foreground, and background colors
+            for (let i = 0; i < text.length; i++) {
+                if (startIndex + i < grid.value.length) {
+                    const fgColor = `rgb(${fg[i].map((c) => Math.round(c * 255)).join(",")})`;
+                    const bgColor = `rgb(${bg[i].map((c) => Math.round(c * 255)).join(",")})`;
+
+                    grid.value[startIndex + i].char = text[i];
+                    grid.value[startIndex + i].textColor = fgColor;
+                    grid.value[startIndex + i].backgroundColor = bgColor;
+                }
+            }
+        })
+        .listenForWhisper('computer_clear', (event) => {
+            
+            const { computer_id } = event;
+
+            if (computer_id !== props.computerId) {
+                return;
+            }
+
+            // Clear the entire grid
+            grid.value.forEach((cell) => {
+                cell.char = String.fromCharCode(0x00);
+                cell.textColor = "#FFFFFF";
+                cell.backgroundColor = "#000000";
+            });
+        })
+        .listenForWhisper('computer_clearLine', (event) => {
+            
+            const { cursorY, computer_id } = event;
+
+            if (computer_id !== props.computerId) {
+                return;
+            }
+
+            // Clear the specified line
+            const startIndex = (cursorY - 1) * cols;
+            for (let i = 0; i < cols; i++) {
+                grid.value[startIndex + i].char = String.fromCharCode(0x00);
+                grid.value[startIndex + i].textColor = "#FFFFFF";
+                grid.value[startIndex + i].backgroundColor = "#000000";
+            }
+        })
+        .listenForWhisper('computer_scroll', (event) => {
+            
+            const { n, computer_id } = event;
+
+            if (computer_id !== props.computerId) {
+                return;
+            }
+
+            if (n > 0) {
+                // Scroll up
+                grid.value.splice(0, n * cols);
+                for (let i = 0; i < n * cols; i++) {
+                    grid.value.push({
+                        char: String.fromCharCode(0x00),
+                        textColor: "#FFFFFF",
+                        backgroundColor: "#000000"
+                    });
+                }
+            } else if (n < 0) {
+                // Scroll down
+                grid.value.splice(n * cols);
+                for (let i = 0; i < -n * cols; i++) {
+                    grid.value.unshift({
+                        char: String.fromCharCode(0x00),
+                        textColor: "#FFFFFF",
+                        backgroundColor: "#000000"
+                    });
+                }
+            }
+        }).listenForWhisper('computer_switchToRealScreen', (event) => {
+            
+            const { n, computer_id } = event;
+
+            if (computer_id !== props.computerId) {
+                return;
+            }
+
+            switchToRealScreen(false);
+            console.log("Switched to real screen");
+        })
+
+        // by default "welcome" is written on the grid at the top left corner only for the client side 
+        const welcome = "Veuillez selectionner un mode d'affichage";
+
+        const start_i = 51 * 5 + Math.floor((51 - welcome.length) / 2);
+        for (let i = 0; i < welcome.length; i++) {
+            grid.value[start_i+i].char = welcome[i];
         }
-    }).listenForWhisper('computer_switchToRealScreen', (event) => {
-        
-        const { n, computer_id } = event;
+    });
+});
 
-        if (computer_id !== props.computerId) {
-            return;
-        }
+onUnmounted(() => {
 
-        switchToRealScreen(false);
-        console.log("Switched to real screen");
-    })
+    // Close the private channel for the computer
+    window.Echo.leave(`computer-${props.computerId}`);
 
-    function handleTermResize(event) {
-        console.log("Term resize event:", window.innerWidth, window.innerHeight);
-    }
+    // Emit an event to switch to the real screen on the private chanel computer-{computerId}
+    window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
 
-    // by default "welcome" is written on the grid at the top left corner only for the client side 
-    const welcome = "Veuillez selectionner un mode d'affichage";
-
-    const start_i = 51 * 5 + Math.floor((51 - welcome.length) / 2);
-    for (let i = 0; i < welcome.length; i++) {
-        grid.value[start_i+i].char = welcome[i];
-    }
-
-    
+    console.log("ComputerCraft terminal unmounted");
 });
 
 let display_mode = "Real Screen";
@@ -303,10 +306,11 @@ function switchToRealScreen(warn_client = true) {
         window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
     }
 
+    // Clear the grid without provoking a recursive call to switchToRealScreen
     grid.value.forEach((cell) => {
         cell.char = String.fromCharCode(0x00);
         cell.textColor = "#FFFFFF";
-        cell.backgroundColor = "#808080";
+        cell.backgroundColor = "#000000";
     });
 
     display_mode = "Real Screen";
@@ -331,9 +335,14 @@ function switchToHybridScreen() {
 }
 
 function close() {
-    window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
     emit('close');
 }
+
+const gridContainerStyle = computed(() => {
+  return {
+    border: `10px solid ${props.is_advanced ? '#C5C66D' : '#C3C3C3'}`,
+  };
+});
 
 </script>
 
@@ -343,32 +352,32 @@ function close() {
         <button class="close-button" @click="close">X</button>
         
         <div class="info_text">Computer ID: {{ computerId }}</div>
-        <div class="grid-container">
-            <div
-                class="grid"
-                @keydown="handleKeydown"
-                @keyup="handleKeyup"
-                @mousedown="handleMouseClick"
-                @mouseup="handleMouseUp"
-                @mousemove="handleMouseDrag"
-                @wheel="handleMouseScroll"
-                @paste="handlePaste"
-                tabindex="0"
-                ref="gridElement"
-            >
-                <div
-                    v-for="(cell, index) in grid"
-                    :key="index"
-                    :style="{
-                        backgroundColor: cell.backgroundColor,
-                        color: cell.textColor,
-                    }"
-                    class="cell"
-                >
-                    {{ cell.char }}
-                </div>
-            </div>
+        <div class="grid-container" :style="gridContainerStyle">
+      <div
+        class="grid"
+        @keydown="handleKeydown"
+        @keyup="handleKeyup"
+        @mousedown="handleMouseClick"
+        @mouseup="handleMouseUp"
+        @mousemove="handleMouseDrag"
+        @wheel="handleMouseScroll"
+        @paste="handlePaste"
+        tabindex="0"
+        ref="gridElement"
+      >
+        <div
+          v-for="(cell, index) in grid"
+          :key="index"
+          :style="{
+            backgroundColor: cell.backgroundColor,
+            color: cell.textColor,
+          }"
+          class="cell"
+        >
+          {{ cell.char }}
         </div>
+      </div>
+    </div>
 
         <!-- Controls to switch between real, virtual, and hybrid screen -->
         <div>

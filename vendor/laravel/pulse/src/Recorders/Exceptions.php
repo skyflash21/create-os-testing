@@ -103,7 +103,7 @@ class Exceptions
         // Getting the line number in the view file is a bit tricky.
         preg_match('/\(View: (?P<path>.*?)\)/', $e->getMessage(), $matches);
 
-        return $this->formatLocation($matches['path'], null);
+        return $this->formatLocation($matches['path'], null); // @phpstan-ignore offsetAccess.notFound
     }
 
     /**

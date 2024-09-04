@@ -64,7 +64,7 @@ function module:init(current_session_id)
 
     -- Recuperation du modele de message websocket
     print("Initialisation du module websocket_presence")
-    self.ws = http.websocket("ws://127.0.0.1:8080/app/7axlwwvifanpbi53vh1z")
+    self.ws = http.websocket("ws://127.0.0.1:8080/app/oqybjzsxnkzwqbzhpsg6")
 
     while self.registered == false do
         local event, url, response = os.pullEvent("websocket_message")

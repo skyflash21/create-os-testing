@@ -219,12 +219,20 @@ class ComputerController extends Controller
 
         $computer = Computer::where('personal_access_token_id', $personal_access_token->id)->first();
 
+
         if (!$computer) {
             return response()->json(['error' => 'Computer not found', 'token_id' => $personal_access_token->id], 404);
         }
+
         
-        $pusherKey = "7axlwwvifanpbi53vh1z";
-        $pusherSecret = "84ic8pxf3qwctgahtpeu";
+        // update the computer last used at
+        $computer->delete();
+        $computer->last_used_at = now();
+        $computer->save();
+        
+        // get the value of the pusher key and secret from the .env file
+        $pusherKey = env('REVERB_APP_KEY');
+        $pusherSecret = env('REVERB_APP_SECRET');
         $channelName = $request->input('channel_name');
         
         $socketId = $request->input('socket_id');
@@ -288,8 +296,8 @@ class ComputerController extends Controller
             return response()->json(['error' => 'Computer not found', 'token_id' => $personal_access_token->id], 404);
         }
         
-        $pusherKey = "7axlwwvifanpbi53vh1z";
-        $pusherSecret = "84ic8pxf3qwctgahtpeu";
+        $pusherKey = env('REVERB_APP_KEY');
+        $pusherSecret = env('REVERB_APP_SECRET');
         $channelName = $request->input('channel_name');
         
         $socketId = $request->input('socket_id'); 

@@ -54,7 +54,8 @@ function module:init(current_session_id)
 
     -- Recuperation du modele de message websocket
     print("Initialisation du module websocket_presence")
-    self.ws = http.websocket("ws://127.0.0.1:8080/app/7axlwwvifanpbi53vh1z")
+    self.ws = http.websocket("ws://127.0.0.1:8080/app/oqybjzsxnkzwqbzhpsg6")
+    print("Connection initie, en attente de la reponse.")
 
     while self.registered == false do
         local event, url, response = os.pullEvent("websocket_message")
@@ -114,6 +115,11 @@ function module:init(current_session_id)
                     self.members[value.id] = value
                 end
             end
+        else
+            term.setTextColor(colors.red)
+            print("Non inscrit : " .. message.event)
+            print(message.data)
+            term.setTextColor(colors.white)
         end
     end
 end

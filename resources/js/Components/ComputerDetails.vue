@@ -6,24 +6,12 @@
         <div class="flex justify-between">
           <div>
             <p class="text-lg font-medium">ID de l'ordinateur: {{ selectedComputer.computer_id }}</p>
-            <p class="text-sm font-medium">Nom: {{ selectedComputer.computer_name }}</p>
-            <p class="text-sm font-medium">Description: {{ selectedComputer.computer_description }}</p>
-            <p class="text-sm font-medium">Type: {{ selectedComputer.type }}</p>
-            <p class="text-sm font-medium">Avancé: {{ selectedComputer.is_advanced ? "Oui" : "Non" }}</p>
-            <p class="text-sm font-medium">Côté Modem Sans Fil: {{ selectedComputer.wireless_modem_side }}</p>
-            <p class="text-sm font-medium">Dernière Utilisation: {{ new Date(selectedComputer.last_used_at).toLocaleDateString() }}</p>
-            <p class="text-sm font-medium">Créé le: {{ new Date(selectedComputer.created_at).toLocaleDateString() }}</p>
+            <p class="text-lg font-medium">Nom: {{ selectedComputer.computer_name }}</p>
           </div>
           <div>
             <CustomButton type="primary" :disabled="!selectedComputer.isConnected" @click="connectComputer">Connecter</CustomButton>
+            <CustomButton type="primary" @click="informationComputer">Information</CustomButton>
           </div>
-        </div>
-        <div class="mt-6">
-          <p class="text-lg font-medium">Espace disque utilisé: {{ selectedComputer.used_disk_space }} / {{ selectedComputer.total_disk_space }} bytes</p>
-          <div class="h-4 bg-gray-300 rounded">
-            <div class="h-full bg-green-500" :style="{ width: diskUsagePercentage + '%' }"></div>
-          </div>
-          <p class="mt-2 text-sm">{{ diskUsagePercentage.toFixed(2) }}%</p>
         </div>
       </div>
       <form @submit.prevent="handleSubmit">
@@ -52,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import CustomButton from '@/Components/CustomButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -63,7 +51,7 @@ const props = defineProps({
   selectedComputer: Object,
 });
 
-const emit = defineEmits(['connectComputer', 'updateComputer', 'deleteComputer']);
+const emit = defineEmits(['connectComputer', 'updateComputer', 'deleteComputer' , 'openComputerInformation']);
 
 const form = useForm({
   _method: 'PUT',
@@ -97,8 +85,8 @@ const connectComputer = () => {
   emit('connectComputer');
 };
 
-const diskUsagePercentage = computed(() => {
-  if (!props.selectedComputer) return 0;
-  return (props.selectedComputer.used_disk_space / props.selectedComputer.total_disk_space) * 100;
-});
+const informationComputer = () => {
+  emit('openComputerInformation');
+};
+
 </script>

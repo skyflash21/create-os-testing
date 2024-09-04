@@ -13,15 +13,17 @@
     <ComputerDetails
       :selectedComputer="selectedComputer"
       @connectComputer="connectComputer"
+      @openComputerInformation="openComputerInformation"
       @updateComputer="handleSubmit"
       @deleteComputer="initiateDelete"
     />
-    <TerminalOverlay
+    <Overlay
       class="overlay"
       v-if="showTerminal"
       :computerId="selectedComputer?.computer_id"
       :showTerminal="showTerminal"
       :terminalType="interfaceType"
+      :computer="selectedComputer"
       @closeTerminal="showTerminal = false"
     />
     <ConfirmationModal v-model:show="showModal" max-width="sm" @close="cancelDelete">
@@ -41,7 +43,7 @@
 import { ref, onMounted } from 'vue';
 import ComputerList from '@/Components/ComputerList.vue';
 import ComputerDetails from '@/Components/ComputerDetails.vue';
-import TerminalOverlay from '@/Components/TerminalOverlay.vue';
+import Overlay from '@/Components/Overlay.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const props = defineProps({
@@ -98,6 +100,14 @@ const connectComputer = () => {
   if (selectedComputer.value) {
     showTerminal.value = true;
     interfaceType.value = "terminal";
+  }
+};
+
+const openComputerInformation = () => {
+  if (selectedComputer.value) {
+    showTerminal.value = true;
+    interfaceType.value = "information";
+    console.log('Computer information opened');
   }
 };
 

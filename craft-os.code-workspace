@@ -2,12 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../../python/laravel_client_reverb"
-		},
-		{
-			"path": "../../../../Users/Nemras/AppData/Roaming/PolyMC/instances/Programmation/.minecraft/saves/New World/computercraft/computer/114"
 		}
 	],
 	"settings": {}
