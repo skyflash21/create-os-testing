@@ -1,19 +1,20 @@
 <template>
   <div class="w-2/3 p-4 bg-gray-800 rounded-lg detail-container">
-    <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">Détails de l'ordinateur</h2>
+    <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">
+      Détails de l'ordinateur [{{ selectedComputer.computer_id }}:{{ selectedComputer.computer_name }}] 
+    </h2>
     <div v-if="selectedComputer" class="info-box">
-      <div class="mb-6 text-white">
-        <div class="flex justify-between">
-          <div>
-            <p class="text-lg font-medium">ID de l'ordinateur: {{ selectedComputer.computer_id }}</p>
-            <p class="text-lg font-medium">Nom: {{ selectedComputer.computer_name }}</p>
-          </div>
-          <div>
-            <CustomButton type="primary" :disabled="!selectedComputer.isConnected" @click="connectComputer">Connecter</CustomButton>
-            <CustomButton type="primary" @click="informationComputer">Information</CustomButton>
-          </div>
-        </div>
+      
+      <!-- Utilisation du FunctionalitySelector avec espace réservé -->
+      <div class="rounded-lg p-4 mb-4">
+        <FunctionalitySelector 
+          :selectedComputer="selectedComputer" 
+          @connectComputer="connectComputer" 
+          @openComputerInformation="informationComputer" 
+        />
       </div>
+      
+      <!-- Formulaire pour les détails de l'ordinateur -->
       <form @submit.prevent="handleSubmit">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -39,6 +40,7 @@
   </div>
 </template>
 
+
 <script setup>
 import { ref, watchEffect } from 'vue';
 import { useForm } from '@inertiajs/vue3';
@@ -46,6 +48,7 @@ import CustomButton from '@/Components/CustomButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
+import FunctionalitySelector from '@/Components/AppSelector.vue';
 
 const props = defineProps({
   selectedComputer: Object,
@@ -88,5 +91,4 @@ const connectComputer = () => {
 const informationComputer = () => {
   emit('openComputerInformation');
 };
-
 </script>
