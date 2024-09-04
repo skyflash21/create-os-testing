@@ -1,5 +1,13 @@
 <template>
-  <div class="flex h-screen p-6 bg-gray-900">
+  <div class="flex bg-gray-900">
+    <ComputerDetails
+      class="ComputerDetails"
+      :selectedComputer="selectedComputer"
+      @connectComputer="connectComputer"
+      @openComputerInformation="openComputerInformation"
+      @updateComputer="handleSubmit"
+      @deleteComputer="initiateDelete"
+    />
     <ComputerList
       :computers="computers"
       :selectedComputer="selectedComputer"
@@ -9,13 +17,6 @@
       @selectComputer="selectComputer"
       @sortBy="sortBy"
       @toggleSortOrder="toggleSortOrder"
-    />
-    <ComputerDetails
-      :selectedComputer="selectedComputer"
-      @connectComputer="connectComputer"
-      @openComputerInformation="openComputerInformation"
-      @updateComputer="handleSubmit"
-      @deleteComputer="initiateDelete"
     />
     <Overlay
       class="overlay"
@@ -42,9 +43,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import ComputerList from '@/Components/ComputerList.vue';
-import ComputerDetails from '@/Components/ComputerDetails.vue';
 import Overlay from '@/Components/Overlay.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import ComputerDetails from '@/Components/ComputerDetails.vue';
 
 const props = defineProps({
   computers: Array,
@@ -157,6 +158,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+html, body {
+  height: 100%;
+}
+
 .overlay {
   position: fixed;
   top: 0;
@@ -166,4 +171,12 @@ onMounted(() => {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
+
+.ComputerDetails {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+}
+
+
 </style>

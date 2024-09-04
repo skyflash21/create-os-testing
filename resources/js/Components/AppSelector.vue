@@ -6,8 +6,8 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 const applications = ref([
   {
     name: 'Connect SSH',
-    icon: '/storage/images/icon_ssh.png', // Chemin de l'icône
-    action: () => emit('connectComputer') // Émettre l'événement connectComputer
+    icon: '/storage/images/icon_ssh.png',
+    action: () => emit('connectComputer')
   },
   {
     name: 'Computer Info',
@@ -19,7 +19,6 @@ const applications = ref([
     icon: '/storage/images/icon_other.png',
     action: () => alert('Another application action')
   },
-  // Ajoutez d'autres applications ici
 ]);
 
 const emit = defineEmits(['connectComputer', 'openComputerInformation']);
@@ -64,7 +63,8 @@ const onMouseLeave = () => {
 </script>
 
 <template>
-  <div class="app-container p-4 bg-gray-800 rounded-lg">
+  <div class="app-container p-4 bg-red rounded-lg min-h-full">
+    <!-- Barre de recherche -->
     <div class="mb-4">
       <input 
         v-model="searchQuery" 
@@ -73,7 +73,9 @@ const onMouseLeave = () => {
         class="w-full p-2 rounded bg-gray-700 text-white"
       />
     </div>
-    <div class="app-grid-container">
+
+    <!-- Zone des applications, limitée en hauteur pour laisser de la place à la pagination -->
+    <div class="app-grid-container mb-4 flex-grow overflow-auto" style="max-height: 70vh;">
       <div v-for="(app, index) in paginatedApplications" :key="index" class="app-item"
            @mouseenter="onMouseEnter(app)"
            @mouseleave="onMouseLeave"
@@ -83,20 +85,22 @@ const onMouseLeave = () => {
         <div class="app-name">{{ app.name }}</div>
       </div>
     </div>
+
+    <!-- Pagination en bas de la page -->
     <div class="flex justify-between mt-4">
       <button 
-        @click="previousPage" 
-        :disabled="currentPage === 1" 
-        class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+      @click="previousPage" 
+      :disabled="currentPage === 1" 
+      class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
       >
-        &larr; Précédent
+      &larr; Précédent
       </button>
       <button 
-        @click="nextPage" 
-        :disabled="currentPage === totalPages" 
-        class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+      @click="nextPage" 
+      :disabled="currentPage === totalPages" 
+      class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
       >
-        Suivant &rarr;
+      Suivant &rarr;
       </button>
     </div>
   </div>
@@ -105,12 +109,18 @@ const onMouseLeave = () => {
 <style scoped>
 .app-container {
   background-color: #2d2d2d;
+  margin-left: 15%;
+  margin-right: 15%;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-grid-container {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 10px;
+  /* Limite la hauteur de la grille pour permettre le défilement si trop d'applications */
+  overflow-y: auto;
 }
 
 .app-item {
@@ -123,6 +133,8 @@ const onMouseLeave = () => {
   padding: 15px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
+  width: 100px;
+  height: 100px;
 }
 
 .app-item:hover {
@@ -147,3 +159,4 @@ const onMouseLeave = () => {
   text-align: center;
 }
 </style>
+

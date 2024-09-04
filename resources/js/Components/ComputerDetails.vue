@@ -1,45 +1,33 @@
 <template>
-  <div class="w-2/3 p-4 bg-gray-800 rounded-lg detail-container">
-    <h2 class="text-lg font-semibold mb-4 border-b pb-2 text-white">
-      Détails de l'ordinateur [{{ selectedComputer.computer_id }}:{{ selectedComputer.computer_name }}] 
+  <div class="w-full h-screen bg-gray-800">
+    <!-- Titre centré -->
+    <h2 v-if="selectedComputer" class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
+      {{ selectedComputer.computer_name }} [{{ selectedComputer.computer_id }}]
     </h2>
-    <div v-if="selectedComputer" class="info-box">
+    <h2 v-else class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
+      Sélectionnez un ordinateur
+    </h2>
+
+    <!-- Zone de sélection d'application centré, 15%:vide 70%:application 15%:vide -->
+    <div class="flex h-full">
+      <!-- Espace vide à gauche (15%) -->
+      <div class="w-1/6"></div>
       
-      <!-- Utilisation du FunctionalitySelector avec espace réservé -->
-      <div class="rounded-lg p-4 mb-4">
+      <!-- Zone principale avec FunctionalitySelector (70%) -->
+      <div v-if="selectedComputer" class="w-4/6 flex justify-center items-center h-5/6">
         <FunctionalitySelector 
-          :selectedComputer="selectedComputer" 
-          @connectComputer="connectComputer" 
-          @openComputerInformation="informationComputer" 
+          :selectedComputer="selectedComputer"
+          @connectComputer="connectComputer"
+          @openComputerInformation="informationComputer"
+          class="w-full h-full"
         />
       </div>
       
-      <!-- Formulaire pour les détails de l'ordinateur -->
-      <form @submit.prevent="handleSubmit">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <InputLabel for="name" value="Nom" />
-            <TextInput v-model="form.name" id="name" type="text" class="mt-1 block w-full" required />
-            <InputError :message="form.errors.name" class="mt-2 text-red-500" />
-          </div>
-          <div>
-            <InputLabel for="description" value="Description" />
-            <TextInput v-model="form.description" id="description" type="text" class="mt-1 block w-full" />
-            <InputError :message="form.errors.description" class="mt-2 text-red-500" />
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end space-x-4">
-          <CustomButton type="primary" :disabled="form.processing" @click="handleSubmit">Mettre à jour l'ordinateur</CustomButton>
-          <CustomButton type="danger" :disabled="deleteForm.processing" @click="initiateDelete">Supprimer l'ordinateur</CustomButton>
-        </div>
-      </form>
-    </div>
-    <div v-else class="text-white">
-      <p>Aucun ordinateur sélectionné. Cliquez sur un ordinateur dans la liste pour voir les détails.</p>
+      <!-- Espace vide à droite (15%) -->
+      <div class="w-1/6"></div>
     </div>
   </div>
 </template>
-
 
 <script setup>
 import { ref, watchEffect } from 'vue';
@@ -54,7 +42,7 @@ const props = defineProps({
   selectedComputer: Object,
 });
 
-const emit = defineEmits(['connectComputer', 'updateComputer', 'deleteComputer' , 'openComputerInformation']);
+const emit = defineEmits(['connectComputer', 'updateComputer', 'deleteComputer', 'openComputerInformation']);
 
 const form = useForm({
   _method: 'PUT',
@@ -92,3 +80,22 @@ const informationComputer = () => {
   emit('openComputerInformation');
 };
 </script>
+
+<style scoped>
+/* Styles pour rendre les icônes ergonomiques */
+.FunctionalitySelector .icon {
+  width: 100px;
+  height: 100px;
+  background-color: #4A5568;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+</style>
