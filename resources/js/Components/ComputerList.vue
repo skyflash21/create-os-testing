@@ -144,6 +144,10 @@ const sortedComputers = computed(() => {
 
 const selectComputer = (computer) => {
     emit("selectComputer", computer);
+
+    if (sidebarVisible.value) {
+        toggleSidebar();
+    }
 };
 
 const sortBy = (key) => {

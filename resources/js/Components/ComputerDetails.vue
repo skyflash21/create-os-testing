@@ -17,8 +17,7 @@
       <div v-if="selectedComputer" class="w-4/6 flex justify-center items-center h-5/6">
         <FunctionalitySelector 
           :selectedComputer="selectedComputer"
-          @connectComputer="connectComputer"
-          @openComputerInformation="informationComputer"
+          @open_interface="open_interface"
           class="w-full h-full"
         />
       </div>
@@ -32,17 +31,13 @@
 <script setup>
 import { ref, watchEffect } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import CustomButton from '@/Components/CustomButton.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
 import FunctionalitySelector from '@/Components/AppSelector.vue';
 
 const props = defineProps({
   selectedComputer: Object,
 });
 
-const emit = defineEmits(['connectComputer', 'updateComputer', 'deleteComputer', 'openComputerInformation']);
+const emit = defineEmits(['updateComputer', 'deleteComputer', 'open_interface']);
 
 const form = useForm({
   _method: 'PUT',
@@ -64,21 +59,12 @@ watchEffect(() => {
   }
 });
 
-const handleSubmit = () => {
-  emit('updateComputer', form);
+// emit('open_interface','openRedstoneInterface')
+const open_interface = (type) => {
+  emit('open_interface' , type);
 };
 
-const initiateDelete = () => {
-  emit('deleteComputer', form.id);
-};
 
-const connectComputer = () => {
-  emit('connectComputer');
-};
-
-const informationComputer = () => {
-  emit('openComputerInformation');
-};
 </script>
 
 <style scoped>
@@ -88,9 +74,6 @@ const informationComputer = () => {
   height: 100px;
   background-color: #4A5568;
   border-radius: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .icon img {

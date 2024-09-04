@@ -3,8 +3,7 @@
     <ComputerDetails
       class="ComputerDetails"
       :selectedComputer="selectedComputer"
-      @connectComputer="connectComputer"
-      @openComputerInformation="openComputerInformation"
+      @open_interface="open_interface"
       @updateComputer="handleSubmit"
       @deleteComputer="initiateDelete"
     />
@@ -46,6 +45,7 @@ import ComputerList from '@/Components/ComputerList.vue';
 import Overlay from '@/Components/Overlay.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import ComputerDetails from '@/Components/ComputerDetails.vue';
+import RedstoneInterface from '@/Components/Application/RedstoneInterface.vue';
 
 const props = defineProps({
   computers: Array,
@@ -97,18 +97,11 @@ const confirmDelete = () => {
   });
 };
 
-const connectComputer = () => {
+const open_interface = (type) => {
+  console.log("open_interface", type);
   if (selectedComputer.value) {
     showTerminal.value = true;
-    interfaceType.value = "terminal";
-  }
-};
-
-const openComputerInformation = () => {
-  if (selectedComputer.value) {
-    showTerminal.value = true;
-    interfaceType.value = "information";
-    console.log('Computer information opened');
+    interfaceType.value = type;
   }
 };
 
@@ -154,6 +147,8 @@ onMounted(() => {
       connectedComputers.value = [...connectedComputers.value, temp_connectedComputers[i].id];
     }
   }
+
+  selectedComputer.value = props.computers[0];
 });
 </script>
 
@@ -169,7 +164,6 @@ html, body {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
 }
 
 .ComputerDetails {

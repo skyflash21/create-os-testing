@@ -1,6 +1,4 @@
 <script setup>
-import { ref, onMounted, watch, computed } from "vue";
-import { usePage } from "@inertiajs/vue3";
 
 // Ajoutez une prop pour l'ID de l'ordinateur
 const props = defineProps({
@@ -12,8 +10,6 @@ const props = defineProps({
 
 // Définir l'événement `emit` pour déclencher l'événement `close`
 const emit = defineEmits(['close']);
-
-const page = usePage();
 
 function close() {
     emit('close');
