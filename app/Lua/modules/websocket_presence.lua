@@ -24,7 +24,7 @@ function module.new()
     local self = setmetatable({}, module)
 
     -- Initialisation des variables obligatoires
-    self.name = "websocket" -- nom du module (doit etre unique)
+    self.name = "websocket_presence" -- nom du module (doit etre unique)
     self.session_id = 0 -- id de la session courante
     self.version = nil -- version du module
 
@@ -60,7 +60,7 @@ function module:init(current_session_id)
     while self.registered == false do
         local event, url, response = os.pullEvent("websocket_message")
         
-        message = textutils.unserializeJSON(response)
+        local message = textutils.unserializeJSON(response)
     
         if message.event == "pusher:connection_established" then
             local data = textutils.unserializeJSON(message.data)
@@ -156,9 +156,6 @@ function module:run(current_session_id)
         elseif event == "websocket_message" then
             self:handle_websocket_message(arg2)
         end
-
-        -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
-        
     end
 end
 

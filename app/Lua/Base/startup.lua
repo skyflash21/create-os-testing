@@ -90,43 +90,12 @@ if response then
 
     -- Fonction personnalisée pour gérer les erreurs et afficher la ligne en question
     local function error_handler(err)
-        term.clear()
-        term.setCursorPos(1, 1)
-        local traceback = debug.traceback(err, 2)
-        print("Error: " .. err)
-        print(traceback)
-
-        -- Isoler et afficher la ligne en question
-        local line_info = traceback:match(":(%d+):")
-        if line_info then
-            local lines = {}
-            for line in code:gmatch("[^\r\n]+") do
-                table.insert(lines, line)
-            end
-
-            local line_number = tonumber(line_info)
-            if lines[line_number] then
-                print("Ligne " .. line_number .. ": " .. lines[line_number])
-            end
-        end
-
-        local file_name = traceback:match("^(.-):")
-        if file_name then
-            print("Fichier: " .. file_name)
-        end
-
-        -- Sauvegarder le fichier qui a causé l'erreur
-        
-
-        read()
         os.shutdown()
     end
 
     -- Utiliser xpcall avec la fonction error_handler
     local ok = xpcall(func, error_handler)
-
-    if not ok then
-    end
+    os.shutdown()
 else
     print("Error: " .. http_failing_response.getResponseCode())
     read()

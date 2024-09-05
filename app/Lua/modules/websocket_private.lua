@@ -69,7 +69,7 @@ function module:init(current_session_id)
     while self.registered == false do
         local event, url, response = os.pullEvent("websocket_message")
         
-        message = textutils.unserializeJSON(response)
+        local message = textutils.unserializeJSON(response)
     
         if message.event == "pusher:connection_established" then
             local data = textutils.unserializeJSON(message.data)

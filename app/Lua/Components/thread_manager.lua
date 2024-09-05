@@ -140,6 +140,49 @@ function Thread_manager:checkForErrors()
     end
 end
 
+function Thread_manager:print_center(text, y)
+    local w, h = term.getSize()
+    term.setCursorPos(w / 2 - #text / 2, y)
+    term.write(text)
+end
+
+-- Fonction appelée lorsqu'une coroutine plante
+function Thread_manager:handleCoroutineError(task_id, error_message)
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+    term.clear()
+    
+    self:print_center("Error in task " .. task_id, 5)
+    term.setCursorPos(1, 7)
+    print("Error message: " .. error_message, 7)
+
+    while true do
+        local event, key = os.pullEvent("key")
+        if key == keys.enter then
+            os.shutdown()
+        end
+    end
+end
+
+-- Fonction appelée lorsqu'un module plante
+function Thread_manager:handleModuleError(module_name, version, error_message)
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+    term.clear()
+    
+    self:print_center("Error in module " .. module_name .. " v" .. version, 5)
+    term.setCursorPos(1, 7)
+    print("Error message: " .. error_message, 7)
+
+    while true do
+        local event, key = os.pullEvent("key")
+        if key == keys.enter then
+            os.shutdown()
+        end
+    end
+end
+
+
 --#endregion Internal Fonctions
 
 function Thread_manager:run()
@@ -163,7 +206,9 @@ function Thread_manager:run()
                 if r and (tFilters[r] == nil or tFilters[r] == eventData[1] or eventData[1] == "terminate") then
                     local ok, param = coroutine.resume(r, table.unpack(eventData, 1, eventData.n))
                     if not ok then
-                        error(param, 0)
+                        print("Error in coroutine task " .. task_id .. ": " .. param)
+                        -- Log or handle the error here instead of crashing
+                        self:handleCoroutineError(task_id, param)
                     else
                         tFilters[r] = param
                     end
@@ -182,7 +227,9 @@ function Thread_manager:run()
             if r and (tFilters[r] == nil or tFilters[r] == eventData[1] or eventData[1] == "terminate") then
                 local ok, param = coroutine.resume(r, table.unpack(eventData, 1, eventData.n))
                 if not ok then
-                    error(param, 0)
+                    print("Error in module " .. module_name .. " v" .. version .. ": " .. param)
+                    -- Log or handle the error here instead of crashing
+                    self:handleModuleError(module_name, version, param)
                 else
                     tFilters[r] = param
                 end
@@ -198,5 +245,6 @@ function Thread_manager:run()
         eventData = table.pack(os.pullEventRaw())
     end
 end
+
 
 return Thread_manager
