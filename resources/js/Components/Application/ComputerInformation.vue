@@ -124,6 +124,22 @@ function formatBytes(bytes) {
   margin: auto;
   color: #ecf0f1;
   font-family: 'Roboto', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 80vh; /* Limite la hauteur de l'élément */
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #34495e;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .header {
@@ -150,7 +166,6 @@ function formatBytes(bytes) {
   font-size: 18px;
   cursor: pointer;
   transition: color 0.3s ease;
-
   position: absolute;
   top: 10px;
   right: 10px;
@@ -160,10 +175,16 @@ function formatBytes(bytes) {
   color: #e74c3c;
 }
 
+/* modern scrollbar */
 .computer-information {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-right: 10px;
+  max-height: 50vh; /* Limite la hauteur de la section des informations */
+  overflow-y: auto; /* Barre de défilement seulement pour la section des informations */
+  scrollbar-width: thin;
+  scrollbar-color: #34495e #2c3e50;
 }
 
 .info-category {
@@ -210,4 +231,5 @@ function formatBytes(bytes) {
   margin-top: 8px;
   line-height: 1.5;
 }
+
 </style>

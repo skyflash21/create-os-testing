@@ -6,7 +6,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 // Références pour la scène, la caméra, le renderer et le cube
 const container = ref(null);
 let scene, camera, renderer, cube, controls;
-let selectedFace = ref('');
+let selectedFace = ref(null); // Face sélectionnée
+let sliderValue = ref(0); // Valeur du slider
 
 // Fonction pour fermer (ici cela peut être modifié pour cacher ou fermer le composant)
 const emit = defineEmits(['close']);
@@ -23,19 +24,35 @@ function close() {
 // Fonction pour créer le cube avec des matériaux pour chaque face
 const createCube = () => {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
-  
-  // Créer des matériaux différents pour chaque face
+
+  const textureLoader = new THREE.TextureLoader();
+
+  // Load textures
+  const computer_advanced_front = textureLoader.load("/storage/textures/advanced_computer/computer_advanced_front.png");
+  const computer_advanced_side = textureLoader.load("/storage/textures/advanced_computer/computer_advanced_side.png");
+  const computer_advanced_top = textureLoader.load("/storage/textures/advanced_computer/computer_advanced_top.png");
+
+  computer_advanced_front.minFilter = THREE.LinearMipMapLinearFilter;
+  computer_advanced_front.magFilter = THREE.NearestFilter;
+  computer_advanced_side.minFilter = THREE.LinearMipMapLinearFilter;
+  computer_advanced_side.magFilter = THREE.NearestFilter;
+  computer_advanced_top.minFilter = THREE.LinearMipMapLinearFilter;
+  computer_advanced_top.magFilter = THREE.NearestFilter;
+
+  // Create materials for each face of the cube
   const materials = [
-    new THREE.MeshBasicMaterial({ color: 0xff0000, name: 'front' }),  // Front
-    new THREE.MeshBasicMaterial({ color: 0x00ff00, name: 'back' }),   // Back
-    new THREE.MeshBasicMaterial({ color: 0x0000ff, name: 'top' }),    // Top
-    new THREE.MeshBasicMaterial({ color: 0xffff00, name: 'bottom' }), // Bottom
-    new THREE.MeshBasicMaterial({ color: 0x00ffff, name: 'left' }),   // Left
-    new THREE.MeshBasicMaterial({ color: 0xff00ff, name: 'right' })   // Right
+    new THREE.MeshBasicMaterial({ map: computer_advanced_front, name: 'Face avant', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face arrière', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'Face haut', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'Face bas', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face gauche', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face droite', side: THREE.DoubleSide })
   ];
 
-  // Créer un mesh avec les géométries et les matériaux
+  // Create the cube mesh with the geometry and the materials
   cube = new THREE.Mesh(geometry, materials);
+
+  // Add the cube to the scene
   scene.add(cube);
 };
 
@@ -46,6 +63,9 @@ const init = () => {
   camera.position.z = 3;
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.gammaOutput = true;
+  renderer.gammaFactor = 2.2;
+
   renderer.setSize(container.value.clientWidth, container.value.clientHeight);
   container.value.appendChild(renderer.domElement);
 
@@ -58,7 +78,7 @@ const init = () => {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
-  const onMouseMove = (event) => {
+  const onClick = (event) => {
     const rect = renderer.domElement.getBoundingClientRect(); // On récupère la taille du canvas
   
     // Ajuster les coordonnées de la souris en fonction de la position et taille du canvas
@@ -68,22 +88,14 @@ const init = () => {
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(cube);
 
-    // Si une face est touchée, on met à jour l'étiquette
+    // Si une face est cliquée, on met à jour l'étiquette
     if (intersects.length > 0) {
       const faceIndex = intersects[0].face.materialIndex;
       selectedFace.value = cube.material[faceIndex].name;
-
-      // Appliquer un contour à la face sélectionnée
-      cube.material.forEach((mat, index) => {
-        mat.wireframe = index === faceIndex;
-      });
-    } else {
-      selectedFace.value = '';
-      cube.material.forEach(mat => mat.wireframe = false);
     }
   };
 
-  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('click', onClick);
 
   // Animation de la scène
   const animate = () => {
@@ -92,12 +104,10 @@ const init = () => {
     renderer.render(scene, camera);
   };
 
-  // On place la caméra dans un angle de 75 degrés, à une distance de 3 unités de la scène
   camera.position.z = 1;
   camera.position.y = 1;
   camera.position.x = 1;
 
-  // On retire la capacité de zoomer avec la molette de la souris
   controls.enableZoom = false;
 
   animate();
@@ -111,21 +121,25 @@ onMounted(() => {
 onUnmounted(() => {
   if (renderer && container.value) {
     container.value.removeChild(renderer.domElement);
-    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('click', onClick);
     console.log('Unmounted');
   }
 });
-
 </script>
 
 <template>
   <div class="terminal-container">
-    <!-- Bouton de fermeture -->
     <button class="close-button" @click="close">X</button>
 
     <!-- Cube 3D et label pour la face sélectionnée -->
     <div ref="container" class="three-container"></div>
+    
     <p v-if="selectedFace" class="face-label">Face sélectionnée : {{ selectedFace }}</p>
+    <p v-else class="face-label">Cliquez sur une face pour la sélectionner</p>
+    
+    <!-- Slider pour contrôler une valeur entre 0 et 15 -->
+    <input v-if="selectedFace" type="range" v-model="sliderValue" min="0" max="15" step="1">
+    <p v-if="selectedFace" > Valeur du slider : {{ sliderValue }}</p>
   </div>
 </template>
 
