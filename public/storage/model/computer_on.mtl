@@ -1,0 +1,8 @@
+# Made in Blockbench 4.10.4
+newmtl m_8701392a-ff98-9ae4-4447-67d95d924a39
+map_Kd computer_normal_front.png
+newmtl m_84f3da34-d988-2ee3-7177-c8406cc17f41
+map_Kd computer_normal_side.png
+newmtl m_4ea74fd8-871e-360d-8e31-fdbe7d65ee86
+map_Kd computer_normal_top.png
+newmtl none

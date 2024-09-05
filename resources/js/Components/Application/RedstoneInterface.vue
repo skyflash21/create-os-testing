@@ -1,109 +1,157 @@
 <script setup>
-import { computed, defineProps, defineEmits, ref } from 'vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-const props = defineProps({
-    computerId: Number,
-});
+// Références pour la scène, la caméra, le renderer et le cube
+const container = ref(null);
+let scene, camera, renderer, cube, controls;
+let selectedFace = ref('');
 
-const emit = defineEmits(['close']);
-
-function close() {
-  emit('close');
-}
-
-const test = () => {
-    console.log('Test');
+// Fonction pour fermer (ici cela peut être modifié pour cacher ou fermer le composant)
+const close = () => {
+  alert("Fermer le composant ou effectuer une action.");
 };
 
-const sides = ['Face', 'Arrière', 'Gauche', 'Droite', 'Haut', 'Bas']; // Les 6 côtés du cube
-const sliderValue = ref(0); // Valeur du curseur
+// Fonction pour créer le cube avec des matériaux pour chaque face
+const createCube = () => {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  
+  // Créer des matériaux différents pour chaque face
+  const materials = [
+    new THREE.MeshBasicMaterial({ color: 0xff0000, name: 'front' }),  // Front
+    new THREE.MeshBasicMaterial({ color: 0x00ff00, name: 'back' }),   // Back
+    new THREE.MeshBasicMaterial({ color: 0x0000ff, name: 'top' }),    // Top
+    new THREE.MeshBasicMaterial({ color: 0xffff00, name: 'bottom' }), // Bottom
+    new THREE.MeshBasicMaterial({ color: 0x00ffff, name: 'left' }),   // Left
+    new THREE.MeshBasicMaterial({ color: 0xff00ff, name: 'right' })   // Right
+  ];
+
+  // Créer un mesh avec les géométries et les matériaux
+  cube = new THREE.Mesh(geometry, materials);
+  scene.add(cube);
+};
+
+// Fonction pour initialiser la scène
+const init = () => {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, container.value.clientWidth / container.value.clientHeight, 0.1, 1000);
+  camera.position.z = 3;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
+  container.value.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+
+  // Créer et ajouter le cube
+  createCube();
+
+  // Ajouter un rayon pour la détection des faces
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  const onMouseMove = (event) => {
+    const rect = renderer.domElement.getBoundingClientRect(); // On récupère la taille du canvas
+  
+    // Ajuster les coordonnées de la souris en fonction de la position et taille du canvas
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(cube);
+
+    // Si une face est touchée, on met à jour l'étiquette
+    if (intersects.length > 0) {
+      const faceIndex = intersects[0].face.materialIndex;
+      selectedFace.value = cube.material[faceIndex].name;
+
+      // Appliquer un contour à la face sélectionnée
+      cube.material.forEach((mat, index) => {
+        mat.wireframe = index === faceIndex;
+      });
+    } else {
+      selectedFace.value = '';
+      cube.material.forEach(mat => mat.wireframe = false);
+    }
+  };
+
+  window.addEventListener('mousemove', onMouseMove);
+
+  // Animation de la scène
+  const animate = () => {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  };
+
+  animate();
+};
+
+onMounted(() => {
+  init();
+});
+
+onUnmounted(() => {
+  if (renderer) {
+    container.value.removeChild(renderer.domElement);
+    window.removeEventListener('mousemove', onMouseMove);
+  }
+});
 </script>
 
 <template>
-    <div class="terminal-container">
-        <!-- Bouton de fermeture -->
-        <button class="close-button" @click="close">X</button>
+  <div class="terminal-container">
+    <!-- Bouton de fermeture -->
+    <button class="close-button" @click="close">X</button>
 
-        <!-- Titre -->
-        <h1 class="title">Redstone Interface</h1>
-
-        <!-- Boutons pour choisir les côtés du cube -->
-        <div class="buttons-container">
-            <PrimaryButton v-for="(side, index) in sides" :key="index" @click="test">{{ side }}</PrimaryButton>
-        </div>
-
-        <!-- Curseur avec la valeur indiquée -->
-        <div class="slider-container">
-            <input type="range" min="0" max="15" v-model="sliderValue" class="slider" />
-            <div class="slider-value">Valeur : {{ sliderValue }}</div>
-        </div>
-    </div>
+    <!-- Cube 3D et label pour la face sélectionnée -->
+    <div ref="container" class="three-container"></div>
+    <p v-if="selectedFace" class="face-label">Face sélectionnée : {{ selectedFace }}</p>
+  </div>
 </template>
 
 <style scoped>
 .terminal-container {
-    position: relative;
-    padding: 20px;
-    border-radius: 20px;
-    background-color: #333;
-    width: 80%;
-    height: 90%;
-    margin: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  position: relative;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: #333;
+  width: 90vh;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Styles pour le container du cube 3D */
+.three-container {
+  width: 100%;
+  height: 80%;
 }
 
 /* Styles pour le bouton de fermeture */
 .close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
 }
 
 .close-button:hover {
-    color: #ff5c5c; /* Couleur de survol */
+  color: #ff5c5c;
 }
 
-/* Styles pour le titre */
-.title {
-    color: white;
-    margin-bottom: 20px;
-}
-
-/* Conteneur des boutons pour les côtés */
-.buttons-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-/* Styles du conteneur du slider */
-.slider-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 20px;
-}
-
-/* Styles pour le slider */
-.slider {
-    width: 300px;
-    margin-bottom: 10px;
-}
-
-/* Affichage de la valeur du slider */
-.slider-value {
-    color: white;
-    font-size: 18px;
+/* Styles pour l'étiquette de la face sélectionnée */
+.face-label {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 10px;
 }
 </style>
