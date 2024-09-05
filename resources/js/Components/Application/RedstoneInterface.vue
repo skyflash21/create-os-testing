@@ -9,9 +9,16 @@ let scene, camera, renderer, cube, controls;
 let selectedFace = ref('');
 
 // Fonction pour fermer (ici cela peut être modifié pour cacher ou fermer le composant)
-const close = () => {
-  alert("Fermer le composant ou effectuer une action.");
-};
+const emit = defineEmits(['close']);
+
+function close() {
+  emit('close');
+
+  if (renderer && container.value) {
+    container.value.removeChild(renderer.domElement);
+    console.log('Unmounted');
+  }
+}
 
 // Fonction pour créer le cube avec des matériaux pour chaque face
 const createCube = () => {
@@ -85,19 +92,30 @@ const init = () => {
     renderer.render(scene, camera);
   };
 
+  // On place la caméra dans un angle de 75 degrés, à une distance de 3 unités de la scène
+  camera.position.z = 1;
+  camera.position.y = 1;
+  camera.position.x = 1;
+
+  // On retire la capacité de zoomer avec la molette de la souris
+  controls.enableZoom = false;
+
   animate();
 };
 
 onMounted(() => {
   init();
+  console.log('Mounted');
 });
 
 onUnmounted(() => {
-  if (renderer) {
+  if (renderer && container.value) {
     container.value.removeChild(renderer.domElement);
     window.removeEventListener('mousemove', onMouseMove);
+    console.log('Unmounted');
   }
 });
+
 </script>
 
 <template>
