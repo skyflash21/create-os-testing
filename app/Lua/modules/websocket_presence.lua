@@ -54,8 +54,14 @@ function module:init(current_session_id)
 
     -- Recuperation du modele de message websocket
     print("Initialisation du module websocket_presence")
-    self.ws = http.websocket("ws://127.0.0.1:8080/app/oqybjzsxnkzwqbzhpsg6")
-    print("Connection initie, en attente de la reponse.")
+    local erreur_ws = nil
+    self.ws, erreur_ws = http.websocket("ws://127.0.0.1:8080/app/oqybjzsxnkzwqbzhpsg6")
+
+    if self.ws then
+        print("Connection initie, en attente de la reponse.")
+    else
+        error("Erreur lors de la connexion au serveur websocket : " .. erreur_ws)
+    end
 
     while self.registered == false do
         local event, url, response = os.pullEvent("websocket_message")
@@ -155,6 +161,8 @@ function module:run(current_session_id)
             return
         elseif event == "websocket_message" then
             self:handle_websocket_message(arg2)
+        elseif event == "websocket_closed" then
+            error("Connexion " .. self.name .. " fermee")
         end
     end
 end

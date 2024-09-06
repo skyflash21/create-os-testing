@@ -143,6 +143,7 @@ end
 function Thread_manager:print_center(text, y)
     local w, h = term.getSize()
     term.setCursorPos(w / 2 - #text / 2, y)
+    term.clearLine()
     term.write(text)
 end
 
@@ -156,14 +157,8 @@ function Thread_manager:handleCoroutineError(task_id, error_message)
     term.setCursorPos(1, 7)
     print("Error message: " .. error_message, 7)
 
-    while true do
-        local event, key = os.pullEvent("key")
-        if key == keys.enter then
-            os.shutdown()
-        end
-    end
+    self:Error_User_Input()
 end
-
 -- Fonction appelée lorsqu'un module plante
 function Thread_manager:handleModuleError(module_name, version, error_message)
     term.setBackgroundColor(colors.red)
@@ -174,9 +169,36 @@ function Thread_manager:handleModuleError(module_name, version, error_message)
     term.setCursorPos(1, 7)
     print("Error message: " .. error_message, 7)
 
+    self:Error_User_Input()
+end
+
+function Thread_manager:Error_User_Input()
+    local wait_timer = os.startTimer(1)
+
+    local last_error_timer = settings.get("last_error_timer")
+    local current_wait_time = 0
+    local wait_time = 5
+
+    if last_error_timer then
+        wait_time = math.min(60*10, last_error_timer * 2)
+    end
+
     while true do
-        local event, key = os.pullEvent("key")
-        if key == keys.enter then
+        local event, arg1 = os.pullEvent()
+
+        if current_wait_time >= wait_time then
+            settings.set("last_error_timer", wait_time)
+            settings.save(".settings")
+            os.reboot()
+        end
+
+        if event == "timer" and arg1 == wait_timer then
+            local minutes = math.floor((wait_time - current_wait_time) / 60)
+            local seconds = (wait_time - current_wait_time) % 60
+            self:print_center("Redemarrage dans " .. minutes .. " minutes et " .. seconds .. " secondes", 17)
+            wait_timer = os.startTimer(1)
+            current_wait_time = current_wait_time + 1
+        elseif event == "key" and arg1 == keys.enter then
             os.shutdown()
         end
     end

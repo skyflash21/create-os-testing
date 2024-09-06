@@ -172,6 +172,8 @@ function module:run(current_session_id)
             end
         elseif event == "char" then
             term.write(arg1)
+        elseif event == "websocket_closed" then
+            error("Connexion " .. self.name .. " fermee")
         end
 
         -- {"event":"SendMessage","data":"{\"message\":\"Hello from client\"}","channel":"presence"}
