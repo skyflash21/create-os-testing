@@ -1,6 +1,13 @@
 <script setup>
 import { defineProps, defineEmits, ref, computed } from 'vue';
 
+// defineProps
+// Ajoutez une prop pour l'ID de l'ordinateur
+const props = defineProps({
+  selectedComputer: Object,
+  disabled: Boolean
+});
+
 const applications = ref([
   {
     name: 'Connection',
@@ -43,6 +50,15 @@ const onMouseEnter = (app) => {
 const onMouseLeave = () => {
   hoveredApp.value = 'Sélectionnez une application';
 };
+
+const onMouseClick = (app) => {
+  if (props.disabled) {
+    alert('L\'ordinateur n\'est pas connecté');
+    return;
+  }
+  app.action();
+};
+
 </script>
 <template>
   <div class="app-container p-4 bg-red rounded-lg min-h-full">
@@ -61,7 +77,7 @@ const onMouseLeave = () => {
       <div v-for="(app, index) in filteredApplications" :key="index" class="app-item"
            @mouseenter="onMouseEnter(app)"
            @mouseleave="onMouseLeave"
-           @click="app.action">
+           @click="onMouseClick(app)">
         <img v-if="app.icon" :src="app.icon" alt="App Icon" class="app-icon" />
         <div v-else class="placeholder-icon">?</div>
         <div class="app-name">{{ app.name }}</div>

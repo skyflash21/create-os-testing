@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('profile_photo_path', 2048)->nullable();
             $table->timestamp('name_updated_at')->nullable();
             $table->timestamps();
+            $table->boolean('is_banned')->default(false);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

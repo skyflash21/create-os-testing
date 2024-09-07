@@ -119,6 +119,20 @@ function module:init(current_session_id)
             })
 
             self.ws.send(value_to_send)
+
+            local value_to_send = textutils.serializeJSON({
+                event = "client-computer_connected",
+                data = {
+                    computer_id = os.getComputerID()
+                },
+                channel = self.channel
+            })
+
+            self.ws.send(value_to_send)
+
+            api.post("double_computer_connected", {
+                computer_id = os.getComputerID()
+            })
         end
     end
 end
@@ -207,38 +221,96 @@ function module:handle_websocket_message(message)
             event = "pusher:pong",
             data = {}
         }))
-    elseif message.event == "client-switchToVirtualScreen" then
-        self:switch_to_virtual_screen()
+    elseif message.event == "client-switch_screen" then
+        self:switch_screen(message.data)
+    elseif message.event == "client-user_input" then
+        self:input_event(message.data)
+    elseif message.event == "client-redstone_event" then
+        self:redstone_event(message.data)
+    elseif message.event == "client-computer_connected" then
+        local value_to_send = textutils.serializeJSON({
+            event = "client-computer_connected",
+            data = {
+                computer_id = os.getComputerID()
+            },
+            channel = self.channel
+        })
 
-        term.clear()
-        term.setCursorPos(1, 1)
-        os.queueEvent("redraw_screen")
-    elseif message.event == "client-switchToHybridScreen" then
-        self:switch_to_hybrid_screen()
+        self.ws.send(value_to_send)
 
-        term.clear()
-        term.setCursorPos(1, 1)
-        os.queueEvent("redraw_screen")
-    elseif message.event == "client-switchToRealScreen" then
+        api.post("double_computer_connected", {
+            computer_id = os.getComputerID()
+        })
+
+        error("Un autre ordinateur est connecté avec le même identifiant")
+    else 
+        print("Message inconnu : " .. message.event)
+    end
+end
+
+function module:redstone_event(event_data)
+    local event_type = event_data.type
+    if event_type == "redstone_changed" then
+        local side = event_data.side
+        local value_string = event_data.value
+
+        local value = tonumber(value_string)
+        
+
+        redstone.setAnalogOutput(side, value)
+
+        local value_to_send = textutils.serializeJSON({
+            event = "client-redstone_update",
+            data = {
+                side = side,
+                value = value,
+                computer_id = os.getComputerID()
+            },
+            channel = self.channel
+        })
+
+        self.ws.send(value_to_send)
+    end
+end
+
+function module:input_event(event_data)
+    local event_type = event_data.type
+    if event_type == "char" then
+        os.queueEvent("char", event_data.char)
+    elseif event_type == "key" then
+        os.queueEvent("key", event_data.key)
+    elseif event_type == "key_up" then
+        os.queueEvent("key_up", event_data.key)
+    elseif event_type == "mouse_click" then
+        os.queueEvent("mouse_click", event_data.button, event_data.x, event_data.y)
+    elseif event_type == "mouse_up" then
+        os.queueEvent("mouse_up", event_data.button, event_data.x, event_data.y)
+    elseif event_type == "mouse_scroll" then
+        os.queueEvent("mouse_scroll", event_data.direction, event_data.x, event_data.y)
+    elseif event_type == "mouse_drag" then
+        os.queueEvent("mouse_drag", event_data.button, event_data.x, event_data.y)
+    end
+end
+
+function module:switch_screen(event_data)
+    if event_data.screen == "real" then
         self:switch_to_real_screen()
 
         term.clear()
         term.setCursorPos(1, 1)
         os.queueEvent("redraw_screen")
-    elseif message.event == "client-char" then
-        os.queueEvent("char", message.data.char)
-    elseif message.event == "client-key" then
-        os.queueEvent("key", message.data.key)
-    elseif message.event == "client-key_up" then
-        os.queueEvent("key_up", message.data.key)
-    elseif message.event == "client-mouse_click" then
-        os.queueEvent("mouse_click", message.data.button, message.data.x, message.data.y)
-    elseif message.event == "client-mouse_up" then
-        os.queueEvent("mouse_up", message.data.button, message.data.x, message.data.y)
-    elseif message.event == "client-mouse_scroll" then
-        os.queueEvent("mouse_scroll", message.data.direction, message.data.x, message.data.y)
-    elseif message.event == "client-mouse_drag" then
-        os.queueEvent("mouse_drag", message.data.button, message.data.x, message.data.y)
+    elseif event_data.screen == "virtual" then
+        self:switch_to_virtual_screen()
+
+        term.clear()
+        term.setCursorPos(1, 1)
+        os.queueEvent("redraw_screen")
+    elseif event_data.screen == "hybrid" then
+        self:switch_to_hybrid_screen()
+
+        term.clear()
+        term.setCursorPos(1, 1)
+        os.queueEvent("redraw_screen")
     end
 end
 
@@ -581,15 +653,6 @@ computer_id = os.getComputerID()
 
         self.ws.send(value_to_send)
     end
-end
-
---[[
-    Methode qui est execute lors de l'appel de la commande run
-    @param string type type de la commande
-    @param table arguments arguments de la commande
-    @return void
-]]--
-function module:command_run(type, arguments)
 end
 
 return module

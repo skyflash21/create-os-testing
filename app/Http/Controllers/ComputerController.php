@@ -95,6 +95,11 @@ class ComputerController extends Controller
 
         $user = $personal_access_token->tokenable;
 
+        // if the user is banned, return an error
+        if ($user->is_banned) {
+            return response()->json(['error' => 'User is banned.'], 403);
+        }
+
         // Dispatch the event
         event(new ComputerRegisteredEvent($computer, $user));
 
@@ -168,6 +173,11 @@ class ComputerController extends Controller
         }
     }
 
+    public function double_computer_connected(Request $request)
+    {
+        $request->user()->is_banned = true;
+    }
+
     
     /**
      * Remove the specified computer from storage.
@@ -200,6 +210,10 @@ class ComputerController extends Controller
 
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        if ($user->is_banned) {
+            return response()->json(['error' => 'User is banned.'], 403);
         }
 
         $header = $request->header('Authorization');
@@ -271,6 +285,10 @@ class ComputerController extends Controller
     public function auth_computer_id(Request $request, $computer_id){
         $user = $request->user();
 
+        if ($user->is_banned) {
+            return response()->json(['error' => 'User is banned.'], 403);
+        }
+        
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }

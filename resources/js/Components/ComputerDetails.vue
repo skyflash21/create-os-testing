@@ -1,29 +1,31 @@
 <template>
-  <div class="w-full h-screen bg-gray-800">
+  <div class="w-full bg-gray-800">
     <!-- Titre centré -->
-    <h2 v-if="selectedComputer" class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
-      {{ selectedComputer.computer_name }} [{{ selectedComputer.computer_id }}]
-    </h2>
-    <h2 v-else class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
-      Sélectionnez un ordinateur
-    </h2>
+     <div  v-if="selectedComputer" >
+        <h2 v-if="selectedComputer.isConnected" class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
+          {{ selectedComputer.computer_name }} [{{ selectedComputer.computer_id }}]
+        </h2>
+        <h2 v-else class="text-2xl font-bold text-white mb-4 mt-4 text-center uppercase">
+          {{ selectedComputer.computer_name }} [{{ selectedComputer.computer_id }}] (Déconnecté)
+        </h2>
+     </div>
 
     <!-- Zone de sélection d'application centré, 15%:vide 70%:application 15%:vide -->
-    <div class="flex h-full">
+    <div class="flex h-5/6">
       <!-- Espace vide à gauche (15%) -->
       <div class="w-1/6"></div>
       
       <!-- Zone principale avec FunctionalitySelector (70%) -->
-      <div v-if="selectedComputer" class="w-4/6 flex justify-center items-center h-5/6">
+      <div v-if="selectedComputer" class="w-4/6">
         <FunctionalitySelector 
           :selectedComputer="selectedComputer"
+          :disabled="!selectedComputer.isConnected"
           @open_interface="open_interface"
-          class="w-full h-full"
+          class="w-full"
         />
       </div>
       
       <!-- Espace vide à droite (15%) -->
-      <div class="w-1/6"></div>
     </div>
   </div>
 </template>

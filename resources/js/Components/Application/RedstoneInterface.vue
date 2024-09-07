@@ -1,7 +1,16 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted , defineProps, defineEmits } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+// Ajoutez une prop pour l'ID de l'ordinateur
+const props = defineProps({
+  computerId: {
+    type: Number,
+    required: true,
+  },
+  computer: Object,
+});
 
 // Références pour la scène, la caméra, le renderer et le cube
 const container = ref(null);
@@ -41,12 +50,12 @@ const createCube = () => {
 
   // Create materials for each face of the cube
   const materials = [
-    new THREE.MeshBasicMaterial({ map: computer_advanced_front, name: 'Face avant', side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face arrière', side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'Face haut', side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'Face bas', side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face gauche', side: THREE.DoubleSide }),
-    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'Face droite', side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ map: computer_advanced_front, name: 'front', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'back', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'top', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_top, name: 'bottom', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'left', side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ map: computer_advanced_side, name: 'right', side: THREE.DoubleSide }),
   ];
 
   // Create the cube mesh with the geometry and the materials
@@ -77,6 +86,9 @@ const init = () => {
   // Ajouter un rayon pour la détection des faces
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+
+  // Le fond du canvas est transparent
+  renderer.setClearColor(0x000000, 0);
 
   const onClick = (event) => {
     const rect = renderer.domElement.getBoundingClientRect(); // On récupère la taille du canvas
@@ -116,6 +128,10 @@ const init = () => {
 onMounted(() => {
   init();
   console.log('Mounted');
+
+  window.Echo.private(`computer-${props.computerId}`).listen('redstone_update', (e) => {
+    console.log(e);
+  });
 });
 
 onUnmounted(() => {
@@ -125,6 +141,12 @@ onUnmounted(() => {
     console.log('Unmounted');
   }
 });
+
+const onSliderChange = (event) => {
+  sliderValue.value = event.target.value;
+  window.Echo.private(`computer-${props.computerId}`).whisper('redstone_event', { type: "redstone_changed", side: selectedFace.value, value: sliderValue.value });
+};
+
 </script>
 
 <template>
@@ -138,8 +160,8 @@ onUnmounted(() => {
     <p v-else class="face-label">Cliquez sur une face pour la sélectionner</p>
     
     <!-- Slider pour contrôler une valeur entre 0 et 15 -->
-    <input v-if="selectedFace" type="range" v-model="sliderValue" min="0" max="15" step="1">
-    <p v-if="selectedFace" > Valeur du slider : {{ sliderValue }}</p>
+    <input v-if="selectedFace" type="range" min="0" max="15" @input="onSliderChange" v-model="sliderValue" />
+    <p v-if="selectedFace" class="face-label">Valeur du slider : {{ sliderValue }}</p>
   </div>
 </template>
 

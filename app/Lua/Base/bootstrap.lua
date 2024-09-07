@@ -272,6 +272,8 @@ local function initialize_computer()
     print("Envoie du signal au gestionnaires de la console.")
 
     os.queueEvent("console_ready")
+
+    settings.set("last_error_timer", 5)
 end
 
 local function main()

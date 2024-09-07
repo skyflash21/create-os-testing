@@ -42,21 +42,45 @@ if not is_api_available() then
         term.setCursorPos(x, y)
         term.write(text)
     end
-    local key = ""
-    while key ~= "q" do
-        term.setBackgroundColor(colors.gray)
-        term.setTextColor(colors.white)
-        term.clear()
 
-        center_print("503 Service Unavailable", 5)
-        center_print("Impossible de contacter l'API", 7)
-        center_print(_G.url .. "/api/api_test", 9)
-        center_print("Veuillez contacter Skyflash21", 15)
-        center_print("Discord : skyflash21", 16)
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+    term.clear()
 
-        _, key = os.pullEvent("key")
+    center_print("503 Service Unavailable", 5)
+    center_print("Impossible de contacter l'API", 7)
+    center_print("Veuillez contacter Skyflash21", 15)
+    center_print("Discord : skyflash21", 16)
+
+    local wait_timer = os.startTimer(1)
+
+    local last_error_timer = settings.get("last_error_timer")
+    local current_wait_time = 0
+    local wait_time = 5
+
+    if last_error_timer then
+        wait_time = math.min(60*10, last_error_timer * 2)
     end
-    os.shutdown()
+
+    while true do
+        local event, arg1 = os.pullEvent()
+
+        if current_wait_time >= wait_time then
+            settings.set("last_error_timer", wait_time)
+            settings.save(".settings")
+            os.reboot()
+        end
+
+        if event == "timer" and arg1 == wait_timer then
+            local minutes = math.floor((wait_time - current_wait_time) / 60)
+            local seconds = (wait_time - current_wait_time) % 60
+            center_print("Redemarrage dans " .. minutes .. " minutes et " .. seconds .. " secondes", 18)
+            wait_timer = os.startTimer(1)
+            current_wait_time = current_wait_time + 1
+        elseif event == "key" and arg1 == keys.enter then
+            os.shutdown()
+        end
+    end
 end
 
 local response, http_failing_response = http.get(_G.url .. "/api/startup");

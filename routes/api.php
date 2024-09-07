@@ -40,6 +40,8 @@ Route::middleware([
     Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
 
     Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
+
+    Route::post('/double_computer_connected', [ComputerController::class,'double_computer_connected']);
 });
 
 // Groupe de Routes non protégées par l'authentification

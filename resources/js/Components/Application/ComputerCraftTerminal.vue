@@ -57,19 +57,22 @@ function handleKeydown(event) {
     const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
 
     if (validChars.test(event.key)) {
-        window.Echo.private(`computer-${props.computerId}`).whisper('char', {
+        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+            type: "char",
             char: event.key,
             computer_id: props.computerId
         });
 
         const key_code = event.keyCode;
-        window.Echo.private(`computer-${props.computerId}`).whisper('key', {
+        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+            type: "key",
             key: key_code,
             computer_id: props.computerId
         });
     } else {
         const key_code = event.keyCode;
-        window.Echo.private(`computer-${props.computerId}`).whisper('key', {
+        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+            type: "key",
             key: key_code,
             computer_id: props.computerId
         });
@@ -87,7 +90,8 @@ function updateMousePosition(event) {
 
 function handleKeyup(event) {
     
-    window.Echo.private(`computer-${props.computerId}`).whisper('key_Up', {
+    window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+        type: "key_up",
         key: event.key,
         computer_id: props.computerId
     });
@@ -96,7 +100,8 @@ function handleKeyup(event) {
 function handleMouseClick(event) {
     const { x, y } = getGridCoordinates(event);
     
-    window.Echo.private(`computer-${props.computerId}`).whisper('mouse_click', {
+    window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+        type: "mouse_click",
         x: x,
         y: y,
         computer_id: props.computerId
@@ -106,7 +111,8 @@ function handleMouseClick(event) {
 function handleMouseUp(event) {
     const { x, y } = getGridCoordinates(event);
     
-    window.Echo.private(`computer-${props.computerId}`).whisper('mouse_up', {
+    window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+        type: "mouse_up",
         x: x,
         y: y,
         computer_id: props.computerId
@@ -118,7 +124,8 @@ function handleMouseDrag(event) {
         // Only log if the left mouse button is held down
         const { x, y } = getGridCoordinates(event);
         
-        window.Echo.private(`computer-${props.computerId}`).whisper('mouse_drag', {
+        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+            type: "mouse_drag",
             x: x,
             y: y,
             button: 1,
@@ -132,7 +139,8 @@ function handleMouseDrag(event) {
 function handleMouseScroll(event) {
     const { x, y } = getGridCoordinates(event);
     
-    window.Echo.private(`computer-${props.computerId}`).whisper('mouse_scroll', {
+    window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+        type: "mouse_scroll",
         x: x,
         y: y,
         direction: Math.sign(event.deltaY),
@@ -303,7 +311,9 @@ function switchToRealScreen(warn_client = true) {
 
     if (warn_client) {
         // Emit an event to switch to the real screen on the private chanel computer-{computerId}
-        window.Echo.private(`computer-${props.computerId}`).whisper('switchToRealScreen', {});
+        window.Echo.private(`computer-${props.computerId}`).whisper('switch_screen', {
+            screen: "real"
+        });
     }
 
     // Clear the grid without provoking a recursive call to switchToRealScreen
@@ -323,13 +333,17 @@ function switchToRealScreen(warn_client = true) {
 }
 
 function switchToVirtualScreen() {
-    window.Echo.private(`computer-${props.computerId}`).whisper('switchToVirtualScreen', {});
+    window.Echo.private(`computer-${props.computerId}`).whisper('switch_screen', {
+        screen: "virtual"
+    });
 
     display_mode = "Virtual Screen";
 }
 
 function switchToHybridScreen() {
-    window.Echo.private(`computer-${props.computerId}`).whisper('switchToHybridScreen', {});
+    window.Echo.private(`computer-${props.computerId}`).whisper('switch_screen', {
+        screen: "hybrid"
+    });
 
     display_mode = "Hybrid Screen";
 }
