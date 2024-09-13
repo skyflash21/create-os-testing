@@ -134,6 +134,15 @@ onMounted(() => {
       selectedComputer.value = null;
       showTerminal.value = false;
       alert(`L'ordinateur ${event.detail.id} a été déconnecté.`);
+      if (props.computers.length > 0) {
+        for (let i = 0; i < props.computers.length; i++) {
+          if (connectedComputers.value.includes(props.computers[i].computer_id)) {
+            props.computers[i].isConnected = true;
+            selectedComputer.value = props.computers[i];
+            break;
+          }
+        }
+      }
     }
   });
 
