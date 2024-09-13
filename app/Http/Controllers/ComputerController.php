@@ -9,6 +9,8 @@ use App\Models\Computer;
 use Illuminate\Routing\Controller;
 use Laravel\Jetstream\Jetstream;
 
+use App\Http\Controllers\FileController;
+
 
 use App\Events\ComputerRegisteredEvent;
 

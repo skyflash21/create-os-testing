@@ -14,6 +14,126 @@ const props = defineProps({
   },
 });
 
+const all_key = {
+    a: 65,
+    c: 67,
+    b: 66,
+    e: 69,
+    d: 68,
+    g: 71,
+    f: 70,
+    numpad3: 323,
+    f10: 299,
+    period: 46,
+    j: 74,
+    m: 77,
+    l: 76,
+    o: 79,
+    n: 78,
+    minus: 45,
+    f1: 290,
+    s: 83,
+    return: 257,
+    slash: 47,
+    seven: 55,
+    eight: 56,
+    v: 86,
+    f22: 311,
+    x: 88,
+    numpad6: 326,
+    z: 90,
+    f18: 307,
+    rightbracket: 93,
+    f9: 298,
+    left: 263,
+    numpadsubtract: 333,
+    f3: 292,
+    f20: 309,
+    numpadequal: 336,
+    pagedown: 267,
+    leftctrl: 341,
+    rightctrl: 345,
+    numpad2: 322,
+    zero: 48,
+    delete: 261,
+    comma: 44,
+    six: 54,
+    leftalt: 342,
+    numpad8: 328,
+    numlock: 282,
+    semicolon: 59,
+    menu: 348,
+    insert: 260,
+    f23: 312,
+    space: 32,
+    f16: 305,
+    down: 264,
+    pause: 284,
+    f11: 300,
+    f5: 294,
+    printscreen: 283,
+    rightshift: 344,
+    f19: 308,
+    h: 72,
+    f15: 304,
+    nine: 57,
+    f2: 291,
+    scrolllock: 281,
+    two: 50,
+    leftbracket: 91,
+    home: 268,
+    capslock: 280,
+    f14: 303,
+    up: 265,
+    rightalt: 346,
+    one: 49,
+    equals: 61,
+    numpadadd: 334,
+    pageup: 266,
+    f7: 296,
+    apostrophe: 39,
+    numpadenter: 335,
+    f8: 297,
+    y: 89,
+    w: 87,
+    u: 85,
+    four: 52,
+    t: 84,
+    p: 80,
+    tab: 258,
+    q: 81,
+    r: 82,
+    f21: 310,
+    numpad1: 321,
+    right: 262,
+    numpaddecimal: 330,
+    f25: 314,
+    leftshift: 340,
+    backspace: 259,
+    grave: 96,
+    end: 269,
+    three: 51,
+    numpadmultiply: 332,
+    f24: 313,
+    k: 75,
+    numpad7: 327,
+    numpad4: 324,
+    f13: 302,
+    numpad0: 320,
+    f17: 306,
+    i: 73,
+    leftsuper: 343,
+    f6: 295,
+    enter: 257,
+    numpaddivide: 331,
+    numpad5: 325,
+    f12: 301,
+    backslash: 92,
+    numpad9: 329,
+    five: 53,
+    f4: 293
+};
+
 // Définir l'événement `emit` pour déclencher l'événement `close`
 const emit = defineEmits(['close']);
 
@@ -26,7 +146,7 @@ function createGrid() {
         grid.push({
             char: String.fromCharCode(0x00), // Utilisez ici le code du caractère spécifique que vous souhaitez
             textColor: "#FFFFFF", // Couleur du texte
-            backgroundColor: "#000000", // Couleur de fond
+            backgroundColor: "rgb(17, 17, 17)", // Couleur de fond
         });
     }
     return grid;
@@ -54,31 +174,36 @@ function getGridCoordinates(event) {
 }
 
 function handleKeydown(event) {
-    const validChars = /^[a-zA-Z0-9\s!"#$%&'()*+,-./:;<=>?@[\\\]^_{|}~]$/;
-
-    if (validChars.test(event.key)) {
-        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
-            type: "char",
-            char: event.key,
-            computer_id: props.computerId
-        });
-
-        const key_code = event.keyCode;
+    // On vérifie si event.key est présent dans all_key lower
+    if (event.key.toLowerCase() in all_key) {
+        // On empêche le comportement par défaut
+        event.preventDefault();
+        // On envoie l'événement au serveur
         window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
             type: "key",
-            key: key_code,
+            key: all_key[event.key.toLowerCase()],
             computer_id: props.computerId
         });
-    } else {
-        const key_code = event.keyCode;
-        window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
-            type: "key",
-            key: key_code,
-            computer_id: props.computerId
-        });
+
+        console.log("Key pressed: ", all_key[event.key.toLowerCase()]);
+
+        // si la clé entrée est un char simple on l'envoie avec le type char
+        if (event.key.length === 1) {
+            window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
+                type: "char",
+                char: event.key,
+                computer_id: props.computerId
+            });
+
+            console.log("Char pressed: ", event.key);
+        }
+    }else{
+        console.log("Key not found in all_key: ", event.key);
+        event.preventDefault();
     }
-    event.preventDefault();
+}
 
+function handleKeyup(event) {
 }
 
 const mousePosition = ref({ x: 0, y: 0 });
@@ -86,15 +211,6 @@ const mousePosition = ref({ x: 0, y: 0 });
 function updateMousePosition(event) {
     const { x, y } = getGridCoordinates(event);
     mousePosition.value = { x, y };
-}
-
-function handleKeyup(event) {
-    
-    window.Echo.private(`computer-${props.computerId}`).whisper('user_input', {
-        type: "key_up",
-        key: event.key,
-        computer_id: props.computerId
-    });
 }
 
 function handleMouseClick(event) {
@@ -224,7 +340,7 @@ onMounted(() => {
             grid.value.forEach((cell) => {
                 cell.char = String.fromCharCode(0x00);
                 cell.textColor = "#FFFFFF";
-                cell.backgroundColor = "#000000";
+                cell.backgroundColor = "rgb(17, 17, 17)";
             });
         })
         .listenForWhisper('computer_clearLine', (event) => {
@@ -240,7 +356,7 @@ onMounted(() => {
             for (let i = 0; i < cols; i++) {
                 grid.value[startIndex + i].char = String.fromCharCode(0x00);
                 grid.value[startIndex + i].textColor = "#FFFFFF";
-                grid.value[startIndex + i].backgroundColor = "#000000";
+                grid.value[startIndex + i].backgroundColor = "rgb(17, 17, 17)";
             }
         })
         .listenForWhisper('computer_scroll', (event) => {
@@ -258,7 +374,7 @@ onMounted(() => {
                     grid.value.push({
                         char: String.fromCharCode(0x00),
                         textColor: "#FFFFFF",
-                        backgroundColor: "#000000"
+                        backgroundColor: "rgb(17, 17, 17)"
                     });
                 }
             } else if (n < 0) {
@@ -268,7 +384,7 @@ onMounted(() => {
                     grid.value.unshift({
                         char: String.fromCharCode(0x00),
                         textColor: "#FFFFFF",
-                        backgroundColor: "#000000"
+                        backgroundColor: "rgb(17, 17, 17)"
                     });
                 }
             }
@@ -320,7 +436,7 @@ function switchToRealScreen(warn_client = true) {
     grid.value.forEach((cell) => {
         cell.char = String.fromCharCode(0x00);
         cell.textColor = "#FFFFFF";
-        cell.backgroundColor = "#000000";
+        cell.backgroundColor = "rgb(17, 17, 17)";
     });
 
     display_mode = "Real Screen";
@@ -463,6 +579,7 @@ const gridContainerStyle = computed(() => {
     height: fit-content; /* Ajustez en fonction du contenu */
     border-radius: 5px;
     border: 10px solid #b0b03f;
+    padding: 5px;
 }
 
 @font-face {

@@ -182,8 +182,6 @@ function module:run(current_session_id)
 
                 self.ws.send(value_to_send)
             end
-        elseif event == "char" then
-            term.write(arg1)
         elseif event == "websocket_closed" then
             error("Connexion " .. self.name .. " fermee")
         end
@@ -241,8 +239,6 @@ function module:handle_websocket_message(message)
         })
         
         error("Un autre ordinateur est connecté avec le même identifiant")
-
-        
     else 
         print("Message inconnu : " .. message.event)
     end

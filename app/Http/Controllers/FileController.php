@@ -44,8 +44,6 @@ class FileController extends Controller
                 }
             }
         }
-    
-        return response()->json(['message' => 'Synchronisation terminée'], 200);
     }
     
     /**
@@ -107,6 +105,7 @@ class FileController extends Controller
      */
     public function retrieveFileVersion(Request $request)
     {
+
         $relativePath = $request->input('path', '');
 
         $fileRecord = File::where('path', $relativePath)->first();
@@ -179,6 +178,9 @@ class FileController extends Controller
      */
     public function retrieveStartupFile()
     {
+        // synchroniser les fichiers
+        $this->syncFile();
+        
         $fileRecord = File::where('path', 'Base/startup.lua')->first();
 
         if (!$fileRecord) {
