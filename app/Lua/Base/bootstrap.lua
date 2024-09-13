@@ -12,7 +12,7 @@ local function check_for_update()
 
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
         ["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = "Base/startup.lua" }
+    local body = { path = "Base/startup.lua" ,computer_id = os.getComputerID() }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file_version",
         textutils.serializeJSON(body), header)
 
@@ -35,7 +35,7 @@ local function check_for_update()
 
 
     if json.version > version then
-        local body = { path = "Base/startup.lua", version = json.version, get_raw = true }
+        local body = { path = "Base/startup.lua", version = json.version, get_raw = true ,computer_id = os.getComputerID() }
         local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
             textutils.serializeJSON(body), header)
 
@@ -212,6 +212,13 @@ local function register_computer(c_name, c_description)
         settings.clear()
         settings.save()
 
+        -- save to file
+        local file = fs.open("error", "w")
+        file.write(data)
+        file.close()
+
+        print("Erreur: enregistrer l'ordinateur")
+
         read()
         os.shutdown()
     end
@@ -221,7 +228,7 @@ end
 local function initialize_computer()
     
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = "Components/api.lua" }
+    local body = { path = "Components/api.lua", computer_id = os.getComputerID() }
 
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
         textutils.serializeJSON(body), header)
@@ -308,12 +315,9 @@ local function main()
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
         ["Accept"] = "application/json", ["Host"] = _G.host }
 
-    print("Recuperation du thread_manager")
-    sleep(1)
-
     -- Ici on va charger les differents elements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
-    local body = { path = "Components/thread_manager.lua" }
+    local body = { path = "Components/thread_manager.lua" ,computer_id = os.getComputerID() }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
         textutils.serializeJSON(body), header)
 

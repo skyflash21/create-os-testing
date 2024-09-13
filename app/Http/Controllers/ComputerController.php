@@ -9,6 +9,7 @@ use App\Models\Computer;
 use Illuminate\Routing\Controller;
 use Laravel\Jetstream\Jetstream;
 
+
 use App\Events\ComputerRegisteredEvent;
 
 class ComputerController extends Controller
@@ -95,11 +96,6 @@ class ComputerController extends Controller
 
         $user = $personal_access_token->tokenable;
 
-        // if the user is banned, return an error
-        if ($user->is_banned) {
-            return response()->json(['error' => 'User is banned.'], 403);
-        }
-
         // Dispatch the event
         event(new ComputerRegisteredEvent($computer, $user));
 
@@ -175,7 +171,16 @@ class ComputerController extends Controller
 
     public function double_computer_connected(Request $request)
     {
-        $request->user()->is_banned = true;
+        $user = $request->user();
+        
+        if ($user->is_banned) {
+            return response()->json(['error' => 'User is banned.'], 403);
+        }
+
+        // ban the user
+        $user->is_banned = true;
+
+        $user->save();
     }
 
     

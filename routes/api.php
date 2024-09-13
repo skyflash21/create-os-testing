@@ -12,17 +12,18 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
+use App\Http\Middleware\CheckIfBanned;
+use App\Http\Middleware\CheckTokenCorrespondance;
+
 
 // Groupe de Routes protégées par l'authentification
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    CheckIfBanned::class,
+    CheckTokenCorrespondance::class
 ])->group(function () {
-
-    // Route pour récupérer les informations de l'utilisateur connecté
-    Route::get('/user', function (Request $request) { return $request->user(); });
-    
     // Routes pour les fichiers
     Route::controller(FileController::class)->group(function () {
         Route::post('/retrieve_file', 'retrieveFile');

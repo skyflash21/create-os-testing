@@ -236,7 +236,13 @@ function module:handle_websocket_message(message)
 
         self.ws.send(value_to_send)
 
+        api.post("double_computer_connected", {
+            computer_id = os.getComputerID()
+        })
+        
         error("Un autre ordinateur est connecté avec le même identifiant")
+
+        
     else 
         print("Message inconnu : " .. message.event)
     end

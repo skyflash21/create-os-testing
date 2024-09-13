@@ -6,6 +6,7 @@ use Inertia\Inertia;
 
 use App\Models\User;
 use App\Events\TestEvent;
+use App\Http\Middleware\CheckIfBanned;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -23,6 +24,7 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    CheckIfBanned::class
 ])->group(function () {
     Route::get('/dashboard', function () {return Inertia::render('Dashboard');})->name('dashboard');
     Route::resource('computers', ComputerController::class);

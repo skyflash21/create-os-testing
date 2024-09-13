@@ -34,41 +34,13 @@ end
 ------------------------------------------------[Request Standard]------------------------------------------------
 
 --[[
-    Permet de faire une requête GET
-    @param path: string
-    @param header: table
-    @return string
-]]
-local function get(path,additional_header)
-    additional_header = additional_header or {}
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = _G.host }
-
-    -- On ajoute les headers passés en paramètre
-    for key, value in pairs(additional_header) do
-        header[key] = value
-    end
-
-    local response, fail_string, http_failing_response = http.get(_G.url.. "/api/"..path, header)
-
-    if not response then
-        check_api_status()
-        return nil, fail_string, http_failing_response
-    end
-
-    local data = response.readAll()
-    response.close()
-
-    return data
-end
-
---[[
     Permet de faire une requête POST
     @param path: string
     @param body: table
     @param header: table
     @return string
 ]]
-local function post(path,body,additional_header)
+local function post(path,additional_body,additional_header)
     additional_header = additional_header or {}
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json", ["Accept"] = "application/json", ["Host"] = _G.host }
 
@@ -76,6 +48,14 @@ local function post(path,body,additional_header)
     for key, value in pairs(additional_header) do
         header[key] = value
     end
+
+    local body = { computer_id = os.getComputerID() }
+
+    -- On ajoute le body passé en paramètre
+    for key, value in pairs(additional_body) do
+        body[key] = value
+    end
+
     local response, fail_string, http_failing_response = http.post(_G.url.. "/api/"..path, textutils.serializeJSON(body), header)
 
     if not response then
