@@ -86,8 +86,9 @@ function module:init(current_session_id)
             if response == nil then
                 print("Erreur lors de l'authentification")
                 print(fail_string)
-                read()
-                shutdown()
+                _G.status = "critical_error"
+                _G.error_detail = http_failing_response
+                sleep(0)
             end
 
             response = textutils.unserializeJSON(response)
@@ -130,9 +131,6 @@ function module:init(current_session_id)
 
             self.ws.send(value_to_send)
 
-            api.post("double_computer_connected", {
-                computer_id = os.getComputerID()
-            })
         end
     end
 end
@@ -237,10 +235,6 @@ function module:handle_websocket_message(message)
         })
 
         self.ws.send(value_to_send)
-
-        api.post("double_computer_connected", {
-            computer_id = os.getComputerID()
-        })
 
         error("Un autre ordinateur est connecté avec le même identifiant")
     else 

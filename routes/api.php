@@ -49,6 +49,8 @@ Route::get('/startup', [FileController::class, 'retrieveStartupFile']);
 Route::get('/bootstrap', [FileController::class, 'retrieveBootstrapFile']);
 Route::post('/verify_computer_availability', [ComputerController::class, 'verifyComputerAvailability']);
 
+Route::get('/sync_files', [FileController::class, 'syncFile']);
+
 // Route pour tester l'API
 Route::get('/api_test', function () {
     return response()->json(['message' => 'API test successful']);

@@ -12,14 +12,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('files', function (Blueprint $table) {
-            $table->id();
+            $table->string('path')->primary();
             $table->string('name');
-            $table->binary('content');
-            $table->unsignedInteger('version');
+            $table->text('description')->nullable(); // Ajout d'une colonne description
             $table->string('hash');
-            $table->string('path');
             $table->unsignedBigInteger('size');
             $table->timestamps();
+        });
+
+        Schema::create('file_versions', function (Blueprint $table) {
+            $table->id();
+            $table->string('file_path');
+            $table->binary('content');
+            $table->unsignedInteger('version');
+            $table->timestamps();
+
+            // Définition de la clé étrangère vers la table files, la primary key de files est path
+            $table->foreign('file_path')->references('path')->on('files');
+            
         });
     }
 
@@ -29,5 +39,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('files');
+        Schema::dropIfExists('file_versions');
     }
 };

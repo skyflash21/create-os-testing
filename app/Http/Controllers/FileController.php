@@ -5,146 +5,117 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\File;
+use App\Models\FileVersion;
+use Illuminate\Support\Facades\File as FileSystem; // Utilisé pour scanner les fichiers du répertoire
 
 class FileController extends Controller
 {
-    const DEFAULT_LUA_DIRECTORY = 'app\\Lua\\';
-    const STARTUP_FILE = 'Base\\startup.lua';
-    const BOOTSTRAP_FILE = 'Base\\bootstrap.lua';
+    const DEFAULT_LUA_DIRECTORY = 'app/Lua/';
 
     /**
-     * Récupérer un fichier dans un répertoire.
+     * Synchroniser les fichiers de DEFAULT_LUA_DIRECTORY dans la base de données.
+     */
+    public function syncFile()
+    {
+        // Scan tout les fichiers dans le répertoire DEFAULT_LUA_DIRECTORY
+        $directoryPath = str_replace('//', '/', str_replace('\\', '/', base_path(self::DEFAULT_LUA_DIRECTORY)));
+        $files = FileSystem::allFiles($directoryPath);
+
+        $filesList = [];
+    
+        foreach ($files as $file) {
+            // Suppression du chemin de base E:/Programmation/Workspaces/Laravel/craft-os/app/Lua/ pour ne garder que Base/bootstrap.lua
+            
+            $filePath = str_replace($directoryPath, '', str_replace('//', '/', str_replace('\\', '/', $file->getPathname())));
+    
+            $content = FileSystem::get($file->getPathname());
+    
+            // Récupérer l'enregistrement de fichier dans la base de données
+            $fileRecord = File::where('path', $filePath)->first();
+    
+            if (!$fileRecord) {
+                // Nouveau fichier, on l'ajoute à la base
+                $this->storeNewFile($filePath, $content);
+            } else {
+                // Vérifier si le fichier a changé
+                if ($this->hasFileChanged($content, $fileRecord->hash)) {
+                    // Le fichier a changé, on ajoute une nouvelle version
+                    $this->storeNewFile($filePath, $content, $fileRecord->versions->last()->version);
+                }
+            }
+        }
+    
+        return response()->json(['message' => 'Synchronisation terminée'], 200);
+    }
+    
+    /**
+     * Récupérer la liste des fichiers stockés dans la base de données.
+     */
+    public function retrieveFilesList(Request $request)
+    {
+        $path = $request->input('path', '');
+
+        if ($path) {
+            $files = File::where('path', 'like', "$path%")->get();
+        } else {
+            return response()->json(['error' => 'Le paramètre path est obligatoire'], 400);
+        }
+
+        // Liste tout les fichiers qui on pour début de chemin le paramètre path
+        $filesList = [];
+        foreach ($files as $file) {
+            $filesList[] = $file->path;
+        }
+
+        return response()->json(['files' => $filesList], 200);
+    }
+
+    /**
+     * Récupérer un fichier depuis la base de données.
      */
     public function retrieveFile(Request $request)
     {
         $relativePath = $request->input('path', '');
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
-        $getRaw = $request->boolean('get_raw', false);
         $version = $request->input('version', null);
+        $get_raw = $request->input('get_raw', false);
 
-        $fileRecord = $this->getFileRecord($fullPath, $version);
+        $fileRecord = File::where('path', $relativePath)->first();
 
         if (!$fileRecord) {
-            if (!is_file($fullPath)) {
-                return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
-            }
-
-            $content = $this->getFileContent($fullPath);
-            $fileRecord = $this->storeNewFile($fullPath, $content);
-        } else {
-            $content = $this->getFileContent($fullPath);
-            if ($this->hasFileChanged($content, $fileRecord->hash)) {
-                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
-            }
+            return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
         }
 
-        return $getRaw ? $this->sendRawContent($content) : $this->sendFileResponse($fileRecord);
+        $fileVersion = $version
+            ? FileVersion::where('file_path', $fileRecord->path)->where('version', $version)->first()
+            : $fileRecord->versions->last();
+
+        if (!$fileVersion) {
+            return response()->json(['error' => "La version $version n'existe pas"], 404);
+        }
+
+        // Retourner le contenu brut du fichier
+        if ($get_raw) {
+            return response($fileVersion->content, 200)
+                ->header('Content-Type', 'text/plain');
+        }
+
+        return $this->sendFileResponse($fileVersion);
     }
 
     /**
-     * Récupérer la version d'un fichier.
+     * Récupérer la version d'un fichier depuis la base de données.
      */
     public function retrieveFileVersion(Request $request)
     {
         $relativePath = $request->input('path', '');
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
 
-        $fileRecord = $this->getFileRecord($fullPath);
+        $fileRecord = File::where('path', $relativePath)->first();
 
         if (!$fileRecord) {
-            if (!is_file($fullPath)) {
-                return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
-            }
-
-            $content = $this->getFileContent($fullPath);
-            $fileRecord = $this->storeNewFile($fullPath, $content);
-            $fileChanged = true;
-        } else {
-            $content = $this->getFileContent($fullPath);
-            $fileChanged = $this->hasFileChanged($content, $fileRecord->hash);
-
-            if ($fileChanged) {
-                $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version);
-            }
+            return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
         }
 
-        return response()->json(['version' => $fileRecord->version, 'file_changed' => $fileChanged], 200);
-    }
-
-    /**
-     * Récupérer la liste des fichiers dans un répertoire.
-     */
-    public function retrieveFilesList(Request $request)
-    {
-        $relativePath = $request->input('path', '');
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath);
-
-        if (!is_dir($fullPath)) {
-            return response()->json(['error' => "Le répertoire $relativePath n'existe pas"], 404);
-        }
-
-        $files = array_values(array_filter(scandir($fullPath), function ($file) {
-            return strpos($file, '.') !== 0;
-        }));
-
-        return response()->json(['files' => $files], 200);
-    }
-
-    /**
-     * Récupérer le fichier d'installation.
-     */
-    public function retrieveStartupFile(Request $request)
-    {
-        return $this->retrieveSpecialFile(self::STARTUP_FILE);
-    }
-
-    /**
-     * Récupérer le fichier de démarrage.
-     */
-    public function retrieveBootstrapFile(Request $request)
-    {
-        return $this->retrieveSpecialFile(self::BOOTSTRAP_FILE);
-    }
-
-    /**
-     * Méthode privée pour traiter les fichiers spéciaux (startup/bootstrap).
-     */
-    private function retrieveSpecialFile(string $filePath)
-    {
-        $fullPath = base_path(self::DEFAULT_LUA_DIRECTORY . $filePath);
-
-        if (!is_file($fullPath)) {
-            return response()->json(['error' => "Le fichier $filePath n'existe pas"], 404);
-        }
-
-        $content = $this->getFileContent($fullPath);
-        $fileRecord = $this->getFileRecord($fullPath);
-
-        if (!$fileRecord || $this->hasFileChanged($content, $fileRecord->hash)) {
-            $fileRecord = $this->storeNewFile($fullPath, $content, $fileRecord->version ?? null);
-        }
-
-        return $this->sendRawContent($content);
-    }
-
-    /**
-     * Récupérer un enregistrement de fichier depuis la base de données ou le cache.
-     */
-    protected function getFileRecord(string $fullPath, ?int $version = null): ?File
-    {
-        $cacheKey = $version ? "file_record_{$fullPath}_v{$version}" : "file_record_{$fullPath}_latest";
-        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($fullPath, $version) {
-            $query = File::where('path', $fullPath);
-            return $version ? $query->where('version', $version)->first() : $query->orderBy('version', 'desc')->first();
-        });
-    }
-
-    /**
-     * Récupérer et minifier le contenu d'un fichier.
-     */
-    protected function getFileContent(string $filePath): string
-    {
-        return file_get_contents($filePath);
+        return response()->json(['version' => $fileRecord->versions->last()->version], 200);
     }
 
     /**
@@ -156,48 +127,87 @@ class FileController extends Controller
     }
 
     /**
-     * Stocker un nouveau fichier dans la base de données.
+     * Stocker un nouveau fichier ou une nouvelle version dans la base de données.
      */
     protected function storeNewFile(string $filePath, string $content, ?int $currentVersion = null): File
     {
+        // Si le fichier n'existe pas, on le crée
+        $fileRecord = File::firstOrCreate(
+            ['path' => $filePath],
+            [
+                'name' => basename($filePath),
+                'description' => null,
+                'size' => strlen($content),
+                'hash' => hash('sha256', $content)
+            ]
+        );
+
+        // Créer une nouvelle version pour ce fichier
         $newVersion = $currentVersion ? $currentVersion + 1 : 1;
-        $file = new File([
+        $fileVersion = new FileVersion([
+            'file_path' => $fileRecord->path,
             'content' => $content,
-            'hash' => hash('sha256', $content),
-            'path' => $filePath,
             'version' => $newVersion,
-            'size' => strlen($content),
-            'name' => basename($filePath),
+            'hash' => hash('sha256', $content)
         ]);
-        $file->save();
+        $fileVersion->save();
 
         // Mise à jour du cache
-        Cache::put("file_record_{$filePath}_latest", $file, now()->addMinutes(10));
+        Cache::put("file_record_{$filePath}_latest", $fileVersion, now()->addMinutes(10));
         if ($currentVersion) {
-            Cache::put("file_record_{$filePath}_v{$newVersion}", $file, now()->addMinutes(10));
+            Cache::put("file_record_{$filePath}_v{$newVersion}", $fileVersion, now()->addMinutes(10));
         }
 
-        return $file;
+        return $fileRecord;
     }
 
     /**
-     * Retourner une réponse avec le fichier brut.
+     * Retourner une réponse JSON avec les informations de la version du fichier.
      */
-    protected function sendRawContent(string $content)
-    {
-        return response($content, 200)->header('Content-Type', 'text/plain');
-    }
-
-    /**
-     * Retourner une réponse JSON avec les informations du fichier.
-     */
-    protected function sendFileResponse(File $file)
+    protected function sendFileResponse(FileVersion $fileVersion)
     {
         return response()->json([
             'file' => [
-                'version' => $file->version,
-                'content' => $file->content
+                'version' => $fileVersion->version,
+                'content' => $fileVersion->content
             ]
         ], 200);
+    }
+
+    /**
+     * Récupérer le fichier startup
+     */
+    public function retrieveStartupFile()
+    {
+        $fileRecord = File::where('path', 'Base/startup.lua')->first();
+
+        if (!$fileRecord) {
+            return response()->json(['error' => "Le fichier startup.lua n'existe pas"], 404);
+        }
+
+        $fileVersion = $fileRecord->versions->last();
+
+        //return the raw content of the file.
+        $file_to_return = $this->sendFileResponse($fileVersion);
+        return $file_to_return->original['file']['content'];
+    }
+
+    /**
+     * Récupérer le fichier bootstrap
+     */
+    public function retrieveBootstrapFile()
+    {
+        // Récupération de la dernière version du fichier bootstrap.lua
+        $fileRecord = File::where('path', 'Base/bootstrap.lua')->first();
+
+        if (!$fileRecord) {
+            return response()->json(['error' => "Le fichier bootstrap.lua n'existe pas"], 404);
+        }
+
+        $fileVersion = $fileRecord->versions->last();
+
+        //return the raw content of the file.
+        $file_to_return = $this->sendFileResponse($fileVersion);
+        return $file_to_return->original['file']['content'];
     }
 }

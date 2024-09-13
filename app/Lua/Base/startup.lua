@@ -1,3 +1,4 @@
+--test
 shell.run("set shell.allow_disk_startup false")
 shell.run("set motd.enable false")
 os.pullEvent = os.pullEventRaw
@@ -121,7 +122,7 @@ if response then
     local ok = xpcall(func, error_handler)
     os.shutdown()
 else
-    print("Error: " .. http_failing_response.getResponseCode())
+    print("Error: Impossible de récupérer le bootstrap")
     read()
     os.shutdown()
 end

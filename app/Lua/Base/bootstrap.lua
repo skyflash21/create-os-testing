@@ -19,6 +19,8 @@ local function check_for_update()
     if not response then
         print(fail_string)
         print(http_failing_response.getResponseCode())
+        
+        print(http_failing_response.readAll())
         read()
         os.shutdown()
     end
@@ -28,6 +30,9 @@ local function check_for_update()
     local json = textutils.unserializeJSON(data)
 
     json.version = tonumber(json.version)
+
+    print("Version actuelle: " .. version)
+
 
     if json.version > version then
         local body = { path = "Base/startup.lua", version = json.version, get_raw = true }
@@ -216,7 +221,7 @@ end
 local function initialize_computer()
     
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = "Components\\api.lua" }
+    local body = { path = "Components/api.lua" }
 
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
         textutils.serializeJSON(body), header)
@@ -224,8 +229,9 @@ local function initialize_computer()
     if not response then
         print(fail_string)
         print(http_failing_response.getResponseCode())
-        read()
-        os.shutdown()
+        
+        _G.status = "critical_error"
+        _G.error_detail = http_failing_response
     end
     
     local data = textutils.unserializeJSON(response.readAll())
@@ -241,7 +247,7 @@ local function initialize_computer()
     for i = 1, #json.files do
         local file = json.files[i]
         
-        local executed_code, version = api.get_code("Modules/" .. file, false)
+        local executed_code, version = api.get_code(file, false)
 
         if executed_code then
             local current_module = executed_code.new()
@@ -302,13 +308,18 @@ local function main()
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
         ["Accept"] = "application/json", ["Host"] = _G.host }
 
+    print("Recuperation du thread_manager")
+    sleep(1)
+
     -- Ici on va charger les differents elements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
-    local body = { path = "Components\\thread_manager.lua" }
+    local body = { path = "Components/thread_manager.lua" }
     local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
         textutils.serializeJSON(body), header)
 
+
     if not response then
+        print("Erreur")
         print(fail_string)
         print(http_failing_response.getResponseCode())
         read()
@@ -319,6 +330,10 @@ local function main()
     response.close()
     local thread_manager = load(data.file.content, "thread_manager", "t", _ENV)().new()
     _G.parallel = thread_manager
+
+    print("Version du bootstrap: " .. settings.get("version"))
+
+
     thread_manager.version = data.file.version
     thread_manager:addTask(initialize_computer, 1)
     thread_manager:run()
@@ -326,3 +341,6 @@ local function main()
 end
 
 main()
+
+
+--test

@@ -83,8 +83,9 @@ function module:init(current_session_id)
             if response == nil then
                 print("Erreur lors de l'authentification")
                 print(fail_string)
-                read()
-                shutdown()
+                _G.status = "critical_error"
+                _G.error_detail = http_failing_response
+                sleep(0)
             end
 
             response = textutils.unserializeJSON(response)

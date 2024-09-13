@@ -10,7 +10,7 @@ local function check_api_status(crash_if_not_available)
         if not crash_if_not_available then return false end
         _G.status = "critical_error"
         _G.error_detail = { tpye = "api not available",message = fail_string, code = http_failing_response.getResponseCode(), path = path, error_message = "Erreur lors de la requête GET" }
-        coroutine.yield()
+        sleep(0)
         return false
     else
         return true
@@ -28,7 +28,7 @@ end
 local function show_code_loading_error(fail_string, http_failing_response, path, error_message)
     _G.status = "critical_error"
     _G.error_detail = { tpye = "code loading error", message = fail_string, code = http_failing_response.getResponseCode(), path = path, error_message = error_message }
-    coroutine.yield()
+    sleep(0)
 end
 
 ------------------------------------------------[Request Standard]------------------------------------------------
@@ -76,7 +76,6 @@ local function post(path,body,additional_header)
     for key, value in pairs(additional_header) do
         header[key] = value
     end
-    print("Envoie de la requête POST")
     local response, fail_string, http_failing_response = http.post(_G.url.. "/api/"..path, textutils.serializeJSON(body), header)
 
     if not response then
@@ -105,13 +104,21 @@ local function get_code(path, crash_if_error)
     crash_if_error = crash_if_error or true
 
     -- Récupération des données
-    local data = api.post("retrieve_file",{ path = path })
+    local data, fail_string, http_failing_response = api.post("retrieve_file",{ path = path })
+
+    if data == nil then
+        if crash_if_error then
+            show_code_loading_error("Erreur lors de la récupération du fichier", http_failing_response, path, "Le fichier recu est nil.")
+        end
+        return nil
+    end
+
     data = textutils.unserializeJSON(data) -- On convertit le json en table
 
     -- Vérification de la réponse
     if data.file == nil or data.file == "" then
         if crash_if_error then
-            show_code_loading_error("Erreur lors de la récupération du fichier", nil, path, "Le fichier recu est nil ou vide.")
+            show_code_loading_error("Erreur lors de la récupération du fichier", http_failing_response, path, "Le fichier recu est nil ou vide.")
         end
         return nil
     end
