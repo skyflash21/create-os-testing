@@ -27,7 +27,7 @@ const applications = ref([
   {
     name: 'Rednet',
     icon: '/storage/images/EnderModem.png',
-    action: () => alert('open_interface')
+    action: () => emit('open_interface','openRedNetInterface')
   },
 ]);
 

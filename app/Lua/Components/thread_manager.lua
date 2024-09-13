@@ -1,6 +1,11 @@
 local Thread_manager = {}
 Thread_manager.__index = Thread_manager
 
+--[[
+Fonction : Permet de crée un nouvel objet Thread_manager
+Paramètre : Aucun
+Retour : Un objet Thread_manager
+]]--
 function Thread_manager.new()
     local self = setmetatable({}, Thread_manager)
 
@@ -19,6 +24,11 @@ end
 
 --#region External Fonctions - Task
 
+--[[
+Fonction : Permet d'ajouter une tâche à la liste des tâches à exécuter 
+Paramètre : task (function) - La tâche à exécuter
+Retour : task_id (number) - L'identifiant de la tâche
+]]--
 function Thread_manager:addTask(task)
     if type(task) ~= "function" then error("Task must be a function", 2) end
 
@@ -29,6 +39,11 @@ function Thread_manager:addTask(task)
     return task_id
 end
 
+--[[
+Fonction : Permet de stopper une tâche en cours
+Paramètre : task_id (number) - L'identifiant de la tâche
+Retour : Aucun
+]]--
 function Thread_manager:stopTask(task_id)
     if type(task_id) ~= "number" then error("Task id must be a number", 2) end
 
@@ -49,6 +64,11 @@ function Thread_manager:stopTask(task_id)
     end
 end
 
+--[[
+Fonction : Lance des tâches en parallèle et attend qu'elles soient toutes terminées avant de retourner
+Paramètre : tasks (table) - Liste des tâches à exécuter
+Retour : Aucun
+]]--
 function Thread_manager:waitforAll(tasks)
     if type(tasks) ~= "table" then error("Tasks must be a table", 2) end
 
@@ -70,6 +90,11 @@ function Thread_manager:waitforAll(tasks)
     end
 end
 
+--[[
+Fonction : Lance une tâche et attend qu'elle soit terminée avant de retourner
+Paramètre : task (function) - La tâche à exécuter
+Retour : Aucun
+]]--
 function Thread_manager:waitfor(task)
     if type(task) ~= "function" then error("Task must be a function", 2) end
 
@@ -94,6 +119,13 @@ end
 
 --#region External Fonctions - Modules
 
+--[[
+Fonction : Permet de charger un module
+Paramètre : module_name (string) - Le nom du module
+Paramètre : version (number) - La version du module
+Paramètre : module (table) - Le module à charger
+Retour : Aucun
+]]--
 function Thread_manager:loadModule(module_name, version, module)
     if type(module_name) ~= "string" then error("Module name must be a string", 2) end
     if type(version) ~= "number" then error("Version must be a number", 2) end
@@ -112,6 +144,11 @@ end
 
 --#region Internal Fonctions
 
+--[[
+Fonction : Permet de vérifier si des tâches ou des modules doivent être ajoutés
+Paramètre : Aucun
+Retour : Aucun
+]]--
 function Thread_manager:checkToAdd()
     -- Add new modules
     while #self.modules_toAdd > 0 and self.current_task_running < self.parallel_coroutines_limit do
@@ -128,6 +165,11 @@ function Thread_manager:checkToAdd()
     end
 end
 
+--[[
+Fonction : Permet de vérifier si une erreur critique est survenue
+Paramètre : Aucun
+Retour : Aucun
+]]--
 function Thread_manager:checkForErrors()
     if _G.status == "critical_error" then
         term.clear()
@@ -140,6 +182,12 @@ function Thread_manager:checkForErrors()
     end
 end
 
+--[[
+Fonction : Permet d'afficher un message d'erreur à l'utilisateur
+Paramètre : text (string) - Le message d'erreur
+Paramètre : y (number) - La position en y du message
+Retour : Aucun
+]]--
 function Thread_manager:print_center(text, y)
     local w, h = term.getSize()
     term.setCursorPos(w / 2 - #text / 2, y)
@@ -147,7 +195,11 @@ function Thread_manager:print_center(text, y)
     term.write(text)
 end
 
--- Fonction appelée lorsqu'une coroutine plante
+--[[
+Fonction : Permet de gérer une erreur survenue dans une coroutine
+Paramètre : task_id (number) - L'identifiant de la tâche
+Paramètre : error_message (string) - Le message d'erreur
+]]--
 function Thread_manager:handleCoroutineError(task_id, error_message)
     term.setBackgroundColor(colors.red)
     term.setTextColor(colors.white)
@@ -159,7 +211,13 @@ function Thread_manager:handleCoroutineError(task_id, error_message)
 
     self:Error_User_Input()
 end
--- Fonction appelée lorsqu'un module plante
+
+--[[
+Fonction : Permet de gérer une erreur survenue dans un module
+Paramètre : module_name (string) - Le nom du module
+Paramètre : version (number) - La version du module
+Paramètre : error_message (string) - Le message d'erreur
+]]--
 function Thread_manager:handleModuleError(module_name, version, error_message)
     term.setBackgroundColor(colors.red)
     term.setTextColor(colors.white)
@@ -172,6 +230,11 @@ function Thread_manager:handleModuleError(module_name, version, error_message)
     self:Error_User_Input()
 end
 
+--[[
+Fonction : Permet d'afficher un message d'erreur à l'utilisateur et de redémarrer l'ordinateur
+Paramètre : Aucun
+Retour : Aucun
+]]--
 function Thread_manager:Error_User_Input()
     local wait_timer = os.startTimer(1)
 
@@ -207,6 +270,11 @@ end
 
 --#endregion Internal Fonctions
 
+--[[
+Fonction : Permet de lancer le Thread_manager
+Paramètre : Aucun
+Retour : Aucun
+]]--
 function Thread_manager:run()
     if self.running then return end
     self.running = true

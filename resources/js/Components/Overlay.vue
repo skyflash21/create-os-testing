@@ -9,6 +9,9 @@
     <div v-else-if="terminalType === 'openComputerInformation'">
       <ComputerInformation :computerId="computerId" :computer="computer" @close="closeTerminal" />
     </div>
+    <div v-else-if="terminalType === 'openRedNetInterface'">
+      <RedNet :computerId="computerId" :computer="computer" @close="closeTerminal" />
+    </div>
   </div>
 </template>
 
@@ -16,6 +19,7 @@
 import ComputerCraftTerminal from '@/Components/Application/ComputerCraftTerminal.vue';
 import RedstoneInterface from '@/Components/Application/RedstoneInterface.vue';
 import ComputerInformation from '@/Components/Application/ComputerInformation.vue';
+import RedNet from './Application/RedNet.vue';
 
 const props = defineProps({
   showTerminal: Boolean,

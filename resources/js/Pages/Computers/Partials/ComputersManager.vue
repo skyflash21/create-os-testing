@@ -148,7 +148,16 @@ onMounted(() => {
     }
   }
 
-  selectedComputer.value = props.computers[0];
+  // Selectionne le premier ordinateur qui apparait également dans connectedComputer
+  if (props.computers.length > 0) {
+    for (let i = 0; i < props.computers.length; i++) {
+      if (connectedComputers.value.includes(props.computers[i].computer_id)) {
+        props.computers[i].isConnected = true;
+        selectedComputer.value = props.computers[i];
+        break;
+      }
+    }
+  }
 });
 </script>
 
