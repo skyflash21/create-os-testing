@@ -32,6 +32,9 @@ class FileController extends Controller
             // Maintenant, $relativeFilePath contient par exemple 'Components/api.lua'
             $content = FileSystem::get($absoluteFilePath);
 
+            // Replace all \ with / $relativeFilePath
+            $relativeFilePath = str_replace('\\', '/', $relativeFilePath);
+
             // Utilisation du cache pour améliorer les performances
             $fileRecord = Cache::remember("file_record_{$relativeFilePath}_latest", 10, function () use ($relativeFilePath) {
                 return FileVersion::where('file_path', $relativeFilePath)->latest('version')->first();
@@ -189,12 +192,29 @@ class FileController extends Controller
      */
     protected function retrieveSpecificFile(string $filePath)
     {
-        $fileVersion = $this->getFileVersion($filePath);
-
-        if (!$fileVersion) {
+        $fileRecord = FileVersion::where('file_path', $filePath)->latest('version')->first();
+        if (!$fileRecord) {
             return response()->json(['error' => "Le fichier $filePath n'existe pas"], 404);
         }
+        
+        //return raw 
+        return response($fileRecord->content, 200)
+            ->header('Content-Type', 'text/plain');
+    }
 
-        return $fileVersion->content;
+    public function test_file()
+    {
+        // Le code Lua que vous voulez minifier
+        $luaCode = 'a = ((1 + 2) - 3) * (4 / (5 ^ 6))';
+
+        // Créer la commande luamin avec le code Lua à minifier
+        // Notez que nous échappons le code Lua pour éviter les problèmes de sécurité
+        $command = 'luamin -c ' . escapeshellarg($luaCode);
+
+        // Exécuter la commande via shell_exec ou exec
+        $output = shell_exec($command);
+
+        // Afficher le résultat minifié
+        echo $output;
     }
 }

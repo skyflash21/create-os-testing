@@ -36,6 +36,16 @@ function module:run(current_session_id)
 
     self.session_id = current_session_id
 
+    -- Attente de l'événement "computer_ready" ou "stop_module"
+    local event, param = os.pullEvent()
+    while event ~= "computer_ready" and (event ~= "stop_module" or param ~= self.session_id) do
+        event, param = os.pullEvent()
+    end
+
+    if event == "stop_module" and param == self.session_id then
+        return
+    end
+
     -- Affiche un message de bienvenue
     self:print_to_buffer("Bienvenue dans la console interactive!", colors.yellow)
     self:print_to_buffer("Tapez 'help' pour afficher les commandes disponibles.", colors.yellow)

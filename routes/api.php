@@ -21,28 +21,32 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-    CheckIfBanned::class,
-    CheckTokenCorrespondance::class
+    CheckIfBanned::class
 ])->group(function () {
-    // Routes pour les fichiers
-    Route::controller(FileController::class)->group(function () {
-        Route::post('/retrieve_file', 'retrieveFile');
-        Route::post('/retrieve_file_version', 'retrieveFileVersion');
-        Route::post('/retrieve_files_list', 'retrieveFilesList');
-    });
+    Route::middleware([
+        CheckTokenCorrespondance::class
+    ])->group(function () {
+        // Routes pour les fichiers
+        Route::controller(FileController::class)->group(function () {
+            Route::post('/retrieve_file', 'retrieveFile');
+            Route::post('/retrieve_file_version', 'retrieveFileVersion');
+            Route::post('/retrieve_files_list', 'retrieveFilesList');
+            Route::post('/test_file', 'test_file');
+        });
 
+
+        Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+
+        Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
+
+        Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
+
+        Route::post('/double_computer_connected', [ComputerController::class,'double_computer_connected']);
+    });
     // Routes pour les ordinateurs
     Route::controller(ComputerController::class)->group(function () {
         Route::post('/register_computer', 'registerComputer');
     });
-
-    Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
-
-    Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
-
-    Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
-
-    Route::post('/double_computer_connected', [ComputerController::class,'double_computer_connected']);
 });
 
 // Groupe de Routes non protégées par l'authentification

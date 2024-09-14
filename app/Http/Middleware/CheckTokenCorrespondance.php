@@ -19,7 +19,6 @@ class CheckTokenCorrespondance
      */
     public function handle(Request $request, Closure $next): Response
     {
-
         // Retrieve the computer_id from the request headers
         $computer_id = $request->computer_id ?? $request->route('computer_id');
 
