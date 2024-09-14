@@ -12,22 +12,38 @@ class FileController extends Controller
 {
     const DEFAULT_LUA_DIRECTORY = 'app/Lua/';
 
+    public function syncFileRequest(Request $request)
+    {
+        $path = $request->input('path', null);
+        return $this->syncFiles($path);
+    }
+
     /**
      * Synchroniser les fichiers de DEFAULT_LUA_DIRECTORY dans la base de données.
      */
-    public function syncFile()
+    public function syncFiles(string $subdirectoryPath = null)
     {
         // Chemin absolu vers le répertoire Lua
         $directoryPath = realpath(base_path(self::DEFAULT_LUA_DIRECTORY));
+
+        // Si un chemin est spécifié, nous l'ajoutons au chemin du répertoire Lua
+        if ($subdirectoryPath) {
+            $directoryPath .= DIRECTORY_SEPARATOR . $subdirectoryPath;
+        }
+
         $files = FileSystem::allFiles($directoryPath);
 
         $createdFiles = [];
         $modifiedFiles = [];
+        $nonmodifiedFiles = [];
 
         foreach ($files as $file) {
             // Convertir le chemin absolu en chemin relatif à partir de Lua
             $absoluteFilePath = $file->getPathname();
             $relativeFilePath = ltrim(str_replace($directoryPath, '', $absoluteFilePath), DIRECTORY_SEPARATOR);
+
+            // Ajout du path au fichier
+            $relativeFilePath = $subdirectoryPath ? $subdirectoryPath . DIRECTORY_SEPARATOR . $relativeFilePath : $relativeFilePath;
 
             // Maintenant, $relativeFilePath contient par exemple 'Components/api.lua'
             $content = FileSystem::get($absoluteFilePath);
@@ -46,10 +62,41 @@ class FileController extends Controller
             } elseif ($this->hasFileChanged($content, $fileRecord->hash)) {
                 $this->storeNewFile($relativeFilePath, $content, $fileRecord->version);
                 $modifiedFiles[] = $relativeFilePath;
+            }else{
+                $nonmodifiedFiles[] = $relativeFilePath;
             }
         }
 
-        return response()->json(['modified_files' => $modifiedFiles, 'created_files' => $createdFiles], 200);
+        return response()->json(['path' => $subdirectoryPath, 'directory' => $directoryPath, 'created' => $createdFiles, 'modified' => $modifiedFiles, 'nonmodified' => $nonmodifiedFiles], 200);
+    }
+
+    /**
+     * Synchroniser un fichier de DEFAULT_LUA_DIRECTORY dans la base de données.
+     */
+    public function syncFile(string $relativePath)
+    {
+        $absoluteFilePath = realpath(base_path(self::DEFAULT_LUA_DIRECTORY . $relativePath));
+        if (!$absoluteFilePath) {
+            return response()->json(['error' => "Le fichier $relativePath n'existe pas"], 404);
+        }
+
+        $content = FileSystem::get($absoluteFilePath);
+
+        $fileRecord = Cache::remember("file_record_{$relativePath}_latest", 10, function () use ($relativePath) {
+            return FileVersion::where('file_path', $relativePath)->latest('version')->first();
+        });
+
+        if (!$fileRecord) {
+            $this->storeNewFile($relativePath, $content);
+            return response()->json(['message' => "Le fichier $relativePath a été créé"], 200);
+        }
+
+        if ($this->hasFileChanged($content, $fileRecord->hash)) {
+            $this->storeNewFile($relativePath, $content, $fileRecord->version);
+            return response()->json(['message' => "Le fichier $relativePath a été modifié"], 200);
+        }
+
+        return response()->json(['message' => "Le fichier $relativePath n'a pas été modifié"], 200);
     }
 
 
@@ -59,11 +106,15 @@ class FileController extends Controller
      */
     public function retrieveFilesList(Request $request)
     {
+
         $path = $request->input('path', '');
 
         if (empty($path)) {
             return response()->json(['error' => 'Le paramètre path est obligatoire'], 400);
         }
+
+        // sync
+        $this->syncFiles($path);
 
         $files = File::where('path', 'like', "$path%")->pluck('path');
 
@@ -78,6 +129,9 @@ class FileController extends Controller
         $relativePath = $request->input('path', '');
         $version = $request->input('version', null);
         $get_raw = $request->input('get_raw', false);
+
+        // sync
+        $this->syncFile($relativePath);
 
         $fileVersion = $this->getFileVersion($relativePath, $version);
         if (!$fileVersion) {

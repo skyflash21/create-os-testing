@@ -48,7 +48,7 @@ function module:run(current_session_id)
 
     -- Affiche un message de bienvenue
     self:print_to_buffer("Bienvenue dans la console interactive!", colors.yellow)
-    self:print_to_buffer("Tapez 'help' pour afficher les commandes disponibles.", colors.yellow)
+    self:print_to_buffer("Tapez 'help' pour afficher les commandes.", colors.yellow)
 
     while true do
         self:display_prompt()
