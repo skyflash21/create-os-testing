@@ -81,7 +81,8 @@ local function get_code(path, crash_if_error)
     if path == nil and type(path) ~= "string" then
         error("path must be a string, current type is " .. type(path))
     end
-    crash_if_error = crash_if_error or true
+    
+    if crash_if_error == nil then crash_if_error = true end
 
     -- Récupération des données
     local data, fail_string, http_failing_response = api.post("retrieve_file",{ path = path })

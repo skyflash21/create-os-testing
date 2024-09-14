@@ -15,8 +15,6 @@ return new class extends Migration
             $table->string('path')->primary();
             $table->string('name');
             $table->text('description')->nullable(); // Ajout d'une colonne description
-            $table->string('hash');
-            $table->unsignedBigInteger('size');
             $table->timestamps();
         });
 
@@ -25,6 +23,8 @@ return new class extends Migration
             $table->string('file_path');
             $table->binary('content');
             $table->unsignedInteger('version');
+            $table->unsignedBigInteger('size');
+            $table->string('hash');
             $table->timestamps();
 
             // Définition de la clé étrangère vers la table files, la primary key de files est path

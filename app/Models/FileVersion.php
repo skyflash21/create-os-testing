@@ -9,7 +9,7 @@ class FileVersion extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['file_path', 'content', 'version'];
+    protected $fillable = ['file_path', 'content', 'version', 'hash','size'];
 
     /**
      * Relation avec le modèle File

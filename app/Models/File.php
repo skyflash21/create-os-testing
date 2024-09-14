@@ -13,7 +13,7 @@ class File extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['name', 'description', 'hash', 'path', 'size'];
+    protected $fillable = ['name', 'description',  'path'];
 
     /**
      * Relation avec le modèle FileVersion

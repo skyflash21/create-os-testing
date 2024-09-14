@@ -96,7 +96,7 @@ Paramètre : task (function) - La tâche à exécuter
 Retour : Aucun
 ]]--
 function Thread_manager:waitfor(task)
-    if type(task) ~= "function" then error("Task must be a function", 2) end
+    if type(task) ~= "function" then error("Task must be a function, got " .. type(task), 2) end
 
     self.current_task_id = self.current_task_id + 1
     local task_id = self.current_task_id

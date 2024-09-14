@@ -1,40 +1,34 @@
 local module = {}
 module.__index = module
 
---[[ 
-    Constructeur de la classe, retourne une instance
-    return self 
-]]--
 function module.new()
     local self = setmetatable({}, module)
 
-    -- Initialisation des variables obligatoires
+    -- Initialisation des variables
     self.name = "user_interface"
     self.session_id = 0
     self.version = "1.0.0"
 
     -- Initialisation des variables inhérentes au module
-    self.username = "user"       -- Nom d'utilisateur affiché dans le prompt
-    self.command_history = {}    -- Historique des commandes
-    self.history_index = 0       -- Index pour naviguer dans l'historique
-    self.current_input = ""      -- Commande en cours de saisie
-    self.max_history = 100       -- Limite d'historique
+    self.username = "user"
+    self.command_history = {}
+    self.history_index = 0
+    self.current_input = ""
+    self.max_history = 100
+
+    -- Buffer d'affichage
+    self.display_buffer = {}  -- Contient tout le contenu affiché
+    self.visible_start_index = 1  -- L'index de la première ligne visible à l'écran
+    self.screen_width, self.screen_height = term.getSize()  -- Taille de l'écran
+    self.scroll_offset = 0  -- Décalage de défilement
 
     return self
 end
 
---[[ 
-    Méthode qui est exécutée lors de l'initialisation du module
-    @return void 
-]]--
 function module:init()
+    -- Initialisation du module
 end
 
---[[ 
-    Méthode qui est exécutée lors de l'appel de la commande run
-    @param int current_session_id string id de la session courante 
-    @return void 
-]]--
 function module:run(current_session_id)
     if current_session_id == nil or type(current_session_id) ~= "number" then
         error("current_session_id must be a number, current type is " .. type(current_session_id))
@@ -43,8 +37,8 @@ function module:run(current_session_id)
     self.session_id = current_session_id
 
     -- Affiche un message de bienvenue
-    self:print_colored("Bienvenue dans la console interactive!", colors.yellow)
-    self:print_colored("Tapez 'help' pour afficher les commandes disponibles.", colors.yellow)
+    self:print_to_buffer("Bienvenue dans la console interactive!", colors.yellow)
+    self:print_to_buffer("Tapez 'help' pour afficher les commandes disponibles.", colors.yellow)
 
     while true do
         self:display_prompt()
@@ -54,13 +48,16 @@ function module:run(current_session_id)
             return
         end
 
-        -- Ajoute la commande à l'historique et réinitialise l'index de l'historique
+        -- Ajoute la commande dans le buffer pour l'afficher
         if input ~= "" then
             table.insert(self.command_history, input)
             if #self.command_history > self.max_history then
-                table.remove(self.command_history, 1)  -- Supprime les vieilles commandes si on dépasse la limite
+                table.remove(self.command_history, 1)
             end
             self.history_index = #self.command_history + 1
+
+            -- Affiche la commande avant de l'exécuter
+            self:print_to_buffer(self.username .. "> " .. input, colors.green)
         end
 
         -- Exécute la commande
@@ -68,19 +65,20 @@ function module:run(current_session_id)
     end
 end
 
---[[ 
-    Affiche le prompt avec le username
-]]--
+-- Affiche le prompt avec le username en bas de l'écran
 function module:display_prompt()
+    local _, screen_height = term.getSize()
+    term.setCursorPos(1, screen_height)  -- Positionner le curseur en bas de l'écran
     term.setTextColor(colors.green)
+    term.setBackgroundColor(colors.gray)
+    term.clearLine()
     term.write(self.username .. "> ")
     term.setTextColor(colors.white)
+    term.write(self.current_input)
+    term.setBackgroundColor(colors.black)
 end
 
---[[ 
-    Lit l'entrée de l'utilisateur caractère par caractère
-    @return string input La commande complète
-]]--
+-- Lit l'entrée de l'utilisateur et gère les événements de la molette
 function module:read_input()
     local input = ""
     local key
@@ -89,140 +87,112 @@ function module:read_input()
         local event, param = os.pullEvent()
 
         if event == "char" then
-            -- Ajouter un caractère à la commande
             input = input .. param
-            term.write(param)  -- Affiche le caractère
+            self.current_input = input
+            self:display_prompt()
 
         elseif event == "key" then
             key = param
             if key == keys.enter then
-                -- Retourne la commande complète quand "Enter" est pressé
-                print("")  -- Nouvelle ligne après le prompt
+                print("")
+                self.current_input = ""
                 return input, false
-
             elseif key == keys.backspace then
-                -- Supprime le dernier caractère
                 if #input > 0 then
                     input = input:sub(1, -2)
-                    local cursor_x, cursor_y = term.getCursorPos()
-                    term.setCursorPos(cursor_x - 1, cursor_y)
-                    term.write(" ")  -- Efface le caractère
-                    term.setCursorPos(cursor_x - 1, cursor_y)
+                    self.current_input = input
+                    self:display_prompt()
                 end
-
-            elseif key == keys.up then
-                -- Flèche "haut" pour naviguer dans l'historique
-                if self.history_index > 1 then
-                    self.history_index = self.history_index - 1
-                    input = self.command_history[self.history_index] or ""
-                    self:clear_line()
-                    term.setTextColor(colors.green)
-                    term.write(self.username .. "> " )
-                    term.setTextColor(colors.white)
-                    term.write(input)
-                end
-
-            elseif key == keys.down then
-                -- Flèche "bas" pour naviguer vers les commandes plus récentes
-                if self.history_index < #self.command_history then
-                    self.history_index = self.history_index + 1
-                    input = self.command_history[self.history_index] or ""
-                    self:clear_line()
-                    term.setTextColor(colors.green)
-                    term.write(self.username .. "> " )
-                    term.setTextColor(colors.white)
-                    term.write(input)
-                end
-            elseif key == keys.right or key == keys.left then
-                -- On retire l'input et on remet l'historique a un index ou il n'y a pas de commandes
-                self.history_index = #self.command_history + 1
-                input = ""
-                self:clear_line()
-                term.setTextColor(colors.green)
-                term.write(self.username .. "> " )
-                term.setTextColor(colors.white)
-                term.write(input)
             end
+        elseif event == "mouse_scroll" then
+            -- Gère le défilement avec la molette
+            self:scroll_screen(param)
         end
 
-        -- Gère l'événement de stop si nécessaire
+        if event == "redraw_screen" then
+            -- Rafraîchit l'écran si nécessaire
+            self:render_screen()
+        end
+
         if event == "stop_module" and param == self.session_id then
             return "", true
         end
     end
 end
 
---[[ 
-    Efface la ligne actuelle (utile pour rafraîchir l'entrée utilisateur)
-]]--
-function module:clear_line()
-    local _, y = term.getCursorPos()
-    term.setCursorPos(1, y)
-    term.clearLine()
-end
-
---[[ 
-    Exécute une commande saisie par l'utilisateur
-    @param string command La commande saisie 
-    @return void 
-]]--
-function module:execute_command(command)
-    if command == "help" then
-        self:print_help()
-    elseif command == "clear" then
-        self:clear_console()
-    elseif command == "exit" then
-        self:exit_console()
-    else
-        self:print_colored("Commande inconnue: " .. command, colors.red)
+-- Fonction de défilement de l'écran
+function module:scroll_screen(direction)
+    -- Direction est 1 pour descendre et -1 pour monter
+    self.scroll_offset = self.scroll_offset - direction
+    if self.scroll_offset < 0 then
+        self.scroll_offset = 0  -- Empêche le défilement en dehors du contenu
+    elseif self.scroll_offset > #self.display_buffer - (self.screen_height - 2) then
+        self.scroll_offset = #self.display_buffer - (self.screen_height - 2)
     end
+    self:render_screen()
 end
 
---[[ 
-    Affiche les commandes disponibles 
-]]--
-function module:print_help()
-    self:print_colored("Commandes disponibles :", colors.white)
-    self:print_colored("help  - Affiche cette aide.", colors.white)
-    self:print_colored("clear - Efface la console.", colors.white)
-    self:print_colored("exit  - Quitte la console.", colors.white)
+-- Rendu de l'écran (affiche seulement la portion visible du buffer)
+function module:render_screen()
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    for i = 1, self.screen_height - 1 do  -- Moins 1 pour laisser de la place pour le prompt
+        local line_index = i + self.scroll_offset
+        if self.display_buffer[line_index] then
+            local line = self.display_buffer[line_index]
+            term.setTextColor(line.color)
+            print(line.text)
+        end
+    end
+
+    -- Réaffiche le prompt en bas
+    self:display_prompt()
 end
 
---[[ 
-    Efface l'affichage de la console 
-]]--
+-- Ajoute une ligne au buffer d'affichage et rend l'écran
+function module:print_to_buffer(text, color)
+    color = color or colors.white
+    table.insert(self.display_buffer, {text = text, color = color})
+
+    -- Si le buffer dépasse la taille de l'écran, on ajuste l'offset
+    if #self.display_buffer > self.screen_height - 2 then  -- Moins 2 pour laisser de la place pour le prompt et une ligne supplémentaire
+        self.scroll_offset = #self.display_buffer - (self.screen_height - 2)
+    end
+
+    self:render_screen()
+end
+
+-- Exécute une commande saisie par l'utilisateur
+function module:execute_command(...)
+    local args = {...}
+    local command = args[1]
+    table.remove(args, 1)
+
+    local code, version = api.get_code("Commands/" .. command .. ".lua", false)
+
+    if code == nil then
+        self:print_to_buffer("Commande invalide " .. command, colors.red)
+        return
+    end
+
+    _G.parallel:waitfor(function() code.execute(self,args) end)
+
+    code = nil
+end
+
+-- Efface l'affichage de la console
 function module:clear_console()
     term.clear()
     term.setCursorPos(1, 1)
+    self.display_buffer = {}  -- Vide le buffer
+    self.scroll_offset = 0
 end
 
---[[ 
-    Quitte la console 
-]]--
+-- Quitte la console
 function module:exit_console()
-    self:print_colored("Fermeture de la console...", colors.yellow)
-    os.shutdown()  -- Dans ComputerCraft, ceci simule la sortie
-end
-
---[[ 
-    Méthode pour imprimer du texte coloré
-    @param string text Le texte à imprimer
-    @param number color La couleur (en utilisant les constantes de `colors`)
-]]--
-function module:print_colored(text, color)
-    term.setTextColor(color)
-    print(text)
-    term.setTextColor(colors.white)
-end
-
---[[ 
-    Méthode qui est exécutée lors de l'appel de la commande run
-    @param string type type de la commande
-    @param table arguments arguments de la commande
-    @return void 
-]]--
-function module:command_run(type, arguments)
-    print("Commande de type '" .. type .. "' exécutée avec les arguments : " .. table.concat(arguments, ", "))
+    self:print_to_buffer("Fermeture de la console...", colors.yellow)
+    os.shutdown()
 end
 
 return module
