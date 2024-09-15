@@ -152,12 +152,21 @@ function module:render_screen()
         if self.display_buffer[line_index] then
             local line = self.display_buffer[line_index]
             term.setTextColor(line.color)
-            print(line.text)
+            term.write(line.text)
+            local cursor_x, cursor_y = term.getCursorPos()
+            term.setCursorPos(1, cursor_y + 1)
+            
+            -- Si on sort de l'écran, on scroll de 1 ligne
+            if cursor_y > self.screen_height - 1 then
+                term.scroll(1)
+            end
         end
     end
 
     -- Réaffiche le prompt en bas
     self:display_prompt()
+
+    -- On envoie l'écran au serveur via un calcul du différenciel ici --[[ IDEE DE FONCTION A AJOUTER ]]--
 end
 
 -- Ajoute une ligne au buffer d'affichage et rend l'écran

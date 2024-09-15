@@ -317,13 +317,20 @@ function Thread_manager:run()
             if r and (tFilters[r] == nil or tFilters[r] == eventData[1] or eventData[1] == "terminate") then
                 local ok, param = coroutine.resume(r, table.unpack(eventData, 1, eventData.n))
                 if not ok then
+                    local file = fs.open("error.log", "a")
+                    file.writeLine("Error in module " .. module_name .. " v" .. version .. ": " .. param)
+                    file.close()
+
                     print("Error in module " .. module_name .. " v" .. version .. ": " .. param)
-                    -- Log or handle the error here instead of crashing
                     self:handleModuleError(module_name, version, param)
                 else
                     tFilters[r] = param
                 end
                 if coroutine.status(r) == "dead" then
+                    local file = fs.open("error.log", "a")
+                    file.writeLine("Module " .. module_name .. " v" .. version .. " has been stopped")
+                    file.close()
+
                     table.remove(self.modules, i)
                     living = living - 1
                 end
