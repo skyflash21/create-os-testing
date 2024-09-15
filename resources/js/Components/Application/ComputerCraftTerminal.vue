@@ -155,7 +155,7 @@ const rows = 19;
 const cols = 51;
 
 // Variable pour la taille des cellules (un seul curseur)
-const cellSize = ref(8); // Taille initiale de la largeur de la cellule
+const cellSize = ref(16); // Taille initiale de la largeur de la cellule
 
 // Les ratios pour conserver le ratio 8/16
 const widthRatio = 1;
@@ -176,6 +176,9 @@ let canvasTexture;
 
 // Données de la grille
 const gridData = ref(createGrid());
+
+// Ensemble des cellules modifiées
+const dirtyCells = new Set();
 
 // Créer la grille de données
 function createGrid() {
@@ -233,50 +236,51 @@ function initThree() {
   characterMesh.position.y = (rows * cellHeight.value) / 2;
   scene.add(characterMesh);
 
-  // Dessiner la grille initiale
-  updateTexture();
-
   // Démarrer la boucle d'animation
   animate();
+
+  // Démarrer la boucle de mise à jour
+  startUpdateLoop();
 }
 
-// Fonction pour mettre à jour la texture en fonction de gridData
+// Fonction pour mettre à jour la texture en fonction des cellules modifiées
 function updateTexture() {
   const canvas = canvasTexture.image;
   const context = canvas.getContext('2d');
 
-  // Effacer le canvas
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  // Définir les styles une seule fois
+  context.font = `${cellHeight.value * 0.75}px CustomFont`;
+  context.textAlign = 'left';
+  context.textBaseline = 'top';
 
-  // Parcourir les données de la grille et dessiner chaque caractère
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const cell = gridData.value[y * cols + x];
+  // Parcourir les cellules modifiées et les redessiner
+  dirtyCells.forEach((index) => {
+    const cell = gridData.value[index];
+    const x = index % cols;
+    const y = Math.floor(index / cols);
 
-      // Dessiner le fond
-      context.fillStyle = cell.backgroundColor;
-      context.fillRect(
-        x * cellWidth.value,
-        y * cellHeight.value,
-        cellWidth.value,
-        cellHeight.value
-      );
+    // Dessiner le fond
+    context.fillStyle = cell.backgroundColor;
+    context.fillRect(
+      x * cellWidth.value,
+      y * cellHeight.value,
+      cellWidth.value,
+      cellHeight.value
+    );
 
-      // Dessiner le caractère
-      context.fillStyle = cell.textColor;
-      context.font = `${cellHeight.value}px 'CustomFont', monospace`;
-      context.textAlign = 'left';
-      context.textBaseline = 'top';
-      context.fillText(
-        cell.char,
-        x * cellWidth.value,
-        y * cellHeight.value
-      );
-    }
+    // Dessiner le caractère
+    context.fillStyle = cell.textColor;
+    context.fillText(
+      cell.char,
+      x * cellWidth.value,
+      y * cellHeight.value
+    );
+  });
+
+  // Mettre à jour la texture du matériel uniquement si des cellules ont été modifiées
+  if (dirtyCells.size > 0) {
+    canvasTexture.needsUpdate = true;
   }
-
-  // Mettre à jour la texture du matériel
-  canvasTexture.needsUpdate = true;
 }
 
 // Fonction d'animation
@@ -285,67 +289,16 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Surveiller les changements de gridData pour mettre à jour la texture
-watch(
-  gridData,
-  () => {
-    updateTexture();
-  },
-  { deep: true }
-);
-
-// Surveiller les changements de taille des cellules
-watch(cellSize, () => {
-  updateSizes();
-});
-
-// Fonction pour mettre à jour les paramètres lors du changement de taille des cellules
-function updateSizes() {
-  // Mettre à jour la caméra
-  camera.left = 0;
-  camera.right = cols * cellWidth.value;
-  camera.top = rows * cellHeight.value;
-  camera.bottom = 0;
-  camera.updateProjectionMatrix();
-
-  // Mettre à jour la taille du renderer
-  renderer.setSize(cols * cellWidth.value, rows * cellHeight.value);
-
-  // Créer un nouveau canvas
-  const canvas = document.createElement('canvas');
-  canvas.width = cols * cellWidth.value;
-  canvas.height = rows * cellHeight.value;
-
-  // Créer une nouvelle texture à partir du nouveau canvas
-  const newCanvasTexture = new THREE.CanvasTexture(canvas);
-  newCanvasTexture.magFilter = THREE.NearestFilter;
-  newCanvasTexture.minFilter = THREE.NearestFilter;
-
-  // Libérer l'ancienne texture
-  if (canvasTexture) {
-    canvasTexture.dispose();
+// Démarrer la boucle de mise à jour
+function startUpdateLoop() {
+  function update() {
+    if (dirtyCells.size > 0) {
+      updateTexture();
+      dirtyCells.clear();
+    }
+    requestAnimationFrame(update);
   }
-
-  // Mettre à jour la référence de la texture
-  canvasTexture = newCanvasTexture;
-
-  // Mettre à jour le matériau pour utiliser la nouvelle texture
-  characterMesh.material.map = canvasTexture;
-  characterMesh.material.needsUpdate = true;
-
-  // Mettre à jour la géométrie du plan
-  characterMesh.geometry.dispose();
-  characterMesh.geometry = new THREE.PlaneGeometry(
-    cols * cellWidth.value,
-    rows * cellHeight.value
-  );
-
-  // Mettre à jour la position du mesh
-  characterMesh.position.x = (cols * cellWidth.value) / 2;
-  characterMesh.position.y = (rows * cellHeight.value) / 2;
-
-  // Redessiner la texture avec le nouveau canvas
-  updateTexture();
+  requestAnimationFrame(update);
 }
 
 // Gestion des événements de la souris
@@ -368,6 +321,7 @@ function handleMouseClick(event) {
     type: 'mouse_click',
     x: x,
     y: y,
+    button: event.button + 1, // Ajouter +1 pour correspondre à l'API
     computer_id: props.computerId,
   });
 }
@@ -380,6 +334,7 @@ function handleMouseUp(event) {
     type: 'mouse_up',
     x: x,
     y: y,
+    button: event.button + 1,
     computer_id: props.computerId,
   });
 }
@@ -495,6 +450,8 @@ onMounted(() => {
               textColor: converted_textColor,
               backgroundColor: converted_backgroundColor,
             };
+            // Marquer la cellule comme modifiée
+            dirtyCells.add(index);
           }
         }
       })
@@ -524,6 +481,8 @@ onMounted(() => {
               textColor: fgColor,
               backgroundColor: bgColor,
             };
+            // Marquer la cellule comme modifiée
+            dirtyCells.add(index);
           }
         }
       })
@@ -536,6 +495,11 @@ onMounted(() => {
 
         // Effacer toute la grille
         gridData.value = createGrid();
+
+        // Marquer toutes les cellules comme modifiées
+        for (let i = 0; i < rows * cols; i++) {
+          dirtyCells.add(i);
+        }
       })
       .listenForWhisper('computer_clearLine', (event) => {
         const { cursorY, computer_id } = event;
@@ -552,6 +516,8 @@ onMounted(() => {
             textColor: '#FFFFFF',
             backgroundColor: '#111111',
           };
+          // Marquer la cellule comme modifiée
+          dirtyCells.add(index);
         }
       })
       .listenForWhisper('computer_scroll', (event) => {
@@ -582,6 +548,11 @@ onMounted(() => {
             });
           }
         }
+
+        // Marquer toutes les cellules comme modifiées
+        for (let i = 0; i < rows * cols; i++) {
+          dirtyCells.add(i);
+        }
       })
       .listenForWhisper('computer_switchToRealScreen', (event) => {
         const { computer_id } = event;
@@ -600,6 +571,7 @@ onMounted(() => {
     const start_i = cols * 5 + Math.floor((cols - welcome.length) / 2);
     for (let i = 0; i < welcome.length; i++) {
       gridData.value[start_i + i].char = welcome[i];
+      dirtyCells.add(start_i + i);
     }
   });
 });
@@ -636,6 +608,7 @@ function switchToRealScreen(warn_client = true) {
   const start_i = cols * 5 + Math.floor((cols - welcome.length) / 2);
   for (let i = 0; i < welcome.length; i++) {
     gridData.value[start_i + i].char = welcome[i];
+    dirtyCells.add(start_i + i);
   }
 }
 
@@ -664,6 +637,7 @@ const gridContainerStyle = computed(() => {
 
 const gridWidth = computed(() => cols * cellWidth.value);
 const gridHeight = computed(() => rows * cellHeight.value);
+
 </script>
 
 <template>
@@ -710,20 +684,6 @@ const gridHeight = computed(() => rows * cellHeight.value);
         <button @click="switchToHybridScreen" class="select_button">
           Hybrid Screen
         </button>
-      </div>
-
-      <!-- Contrôle pour ajuster la taille des cellules -->
-      <div class="controls">
-        <label>
-          Cell Size:
-          <input
-            type="range"
-            v-model="cellSize"
-            min="4"
-            max="16"
-            step="1"
-          />
-        </label>
       </div>
     </div>
   </div>
@@ -773,6 +733,11 @@ const gridHeight = computed(() => rows * cellHeight.value);
   margin-top: 20px;
   justify-content: center;
   gap: 20px;
+}
+
+@font-face {
+  font-family: "CustomFont";
+  src: url("/storage/fonts/HDfont.ttf") format("truetype");
 }
 
 .controls label {
