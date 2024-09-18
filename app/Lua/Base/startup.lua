@@ -1,4 +1,3 @@
---test
 shell.run("set shell.allow_disk_startup false")
 shell.run("set motd.enable false")
 os.pullEvent = os.pullEventRaw

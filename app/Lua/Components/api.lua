@@ -85,7 +85,7 @@ local function get_code(path, crash_if_error)
     if crash_if_error == nil then crash_if_error = true end
 
     -- Récupération des données
-    local data, fail_string, http_failing_response = api.post("retrieve_file",{ path = path })
+    local data, fail_string, http_failing_response = api.post("retrieveFile",{ path = path })
 
     if data == nil then
         if crash_if_error then
@@ -97,14 +97,14 @@ local function get_code(path, crash_if_error)
     data = textutils.unserializeJSON(data) -- On convertit le json en table
 
     -- Vérification de la réponse
-    if data.file == nil or data.file == "" then
+    if data == nil or data == "" then
         if crash_if_error then
             show_code_loading_error("Erreur lors de la récupération du fichier", http_failing_response, path, "Le fichier recu est nil ou vide.")
         end
         return nil
     end
 
-    local code = data.file.content
+    local code = data.content
     local filename = string.match(path, "[^/]+$")
     local code_loaded, err = load(code, filename, "t", _ENV)
 
@@ -113,7 +113,7 @@ local function get_code(path, crash_if_error)
         return nil
     end
 
-    return code_loaded(), data.file.version
+    return code_loaded(), data.version
 end
 
 return {

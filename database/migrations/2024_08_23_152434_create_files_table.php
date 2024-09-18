@@ -12,9 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('files', function (Blueprint $table) {
-            $table->string('path')->primary();
+            $table->string('file_path')->primary();
             $table->string('name');
             $table->text('description')->nullable(); // Ajout d'une colonne description
+            $table->boolean('is_restricted')->default(false);
             $table->timestamps();
         });
 
@@ -22,14 +23,21 @@ return new class extends Migration
             $table->id();
             $table->string('file_path');
             $table->binary('content');
+            $table->text('change_note')->nullable();
+            $table->boolean('is_restricted')->default(false);
             $table->unsignedInteger('version');
             $table->unsignedBigInteger('size');
-            $table->string('hash');
+            $table->string('hash')->index(); // Ajout d'un index pour améliorer les recherches par hash
             $table->timestamps();
 
-            // Définition de la clé étrangère vers la table files, la primary key de files est path
-            $table->foreign('file_path')->references('path')->on('files');
+            // Clé étrangère vers la table files (corrected reference)
+            $table->foreign('file_path')
+                  ->references('file_path')
+                  ->on('files')
+                  ->onDelete('cascade'); // Suppression en cascade si le fichier est supprimé
             
+            // Contrainte d'unicité pour éviter plusieurs versions identiques d'un fichier
+            $table->unique(['file_path', 'version', 'hash']);
         });
     }
 
@@ -38,7 +46,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('files');
         Schema::dropIfExists('file_versions');
+        Schema::dropIfExists('files');
     }
 };

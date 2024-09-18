@@ -8,19 +8,16 @@ _G.host = "localhost"
 local function check_for_update()
     print("Verification de la mise a jour ...")
 
-    local version = settings.get("version") or 0
-
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
         ["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = "Base/startup.lua" ,computer_id = os.getComputerID() }
-    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file_version",
+    local body = { path = "\\Base\\startup.lua" ,computer_id = os.getComputerID() }
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveLastVersion",
         textutils.serializeJSON(body), header)
 
     if not response then
         print(fail_string)
         print(http_failing_response.getResponseCode())
-        
-        print(http_failing_response.readAll())
+        print("Impossible de recuperer la version du startup.lua")
         read()
         os.shutdown()
     end
@@ -31,17 +28,18 @@ local function check_for_update()
 
     json.version = tonumber(json.version)
 
-    print("Version actuelle: " .. version)
-
+    local version = settings.get("version") or 0
+    print("Version actuelle: " .. version .. " Version disponible: " .. json.version)
 
     if json.version > version then
-        local body = { path = "Base/startup.lua", version = json.version, get_raw = true ,computer_id = os.getComputerID() }
-        local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+        local body = { path = "\\Base\\startup.lua", raw = true ,computer_id = os.getComputerID() }
+        local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveFile",
             textutils.serializeJSON(body), header)
 
         if not response then
             print(fail_string)
             print(http_failing_response.getResponseCode())
+            print(http_failing_response.readAll())
             read()
             os.shutdown()
         end
@@ -228,9 +226,9 @@ end
 local function initialize_computer()
     
     local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = "Components/api.lua", computer_id = os.getComputerID() }
+    local body = { path = "\\Components\\api.lua", computer_id = os.getComputerID() }
 
-    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveFile",
         textutils.serializeJSON(body), header)
 
     if not response then
@@ -243,17 +241,18 @@ local function initialize_computer()
     
     local data = textutils.unserializeJSON(response.readAll())
     response.close()
-    _G.api = load(data.file.content, "api", "t", _ENV)()
+    _G.api = load(data.content, "api", "t", _ENV)()
 
-    local data, fail_string, http_failing_respons = api.post("retrieve_files_list",{ path = "Modules" })
+    local data, fail_string, http_failing_respons = api.post("retrieveFilesList",{ path = "\\Modules" })
     if not data then
         error("Impossible de recuperer la liste des modules, " .. fail_string)
     end
     local json = textutils.unserializeJSON(data)
     local modules = {}
-    for i = 1, #json.files do
-        local file = json.files[i]
+    for i = 1, #json do
+        local file = json[i].path
         
+        local last_code = json[i].last_version
         local executed_code, version = api.get_code(file, false)
 
         if executed_code then
@@ -317,8 +316,8 @@ local function main()
 
     -- Ici on va charger les differents elements de l'ordinateur
     -- On va commencer par le gestionnaire de thread
-    local body = { path = "Components/thread_manager.lua" ,computer_id = os.getComputerID() }
-    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieve_file",
+    local body = { path = "\\Components\\thread_manager.lua" ,computer_id = os.getComputerID() }
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveFile",
         textutils.serializeJSON(body), header)
 
 
@@ -331,20 +330,17 @@ local function main()
     end
 
     local data = textutils.unserializeJSON(response.readAll())
+
     response.close()
-    local thread_manager = load(data.file.content, "thread_manager", "t", _ENV)().new()
+    local thread_manager = load(data.content, "thread_manager", "t", _ENV)().new()
     _G.parallel = thread_manager
 
     print("Version du bootstrap: " .. settings.get("version"))
 
-
-    thread_manager.version = data.file.version
+    thread_manager.version = data.version
     thread_manager:addTask(initialize_computer, 1)
     thread_manager:run()
 
 end
 
 main()
-
-
---test

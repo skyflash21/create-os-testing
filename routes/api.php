@@ -23,27 +23,29 @@ Route::middleware([
     'verified',
     CheckIfBanned::class
 ])->group(function () {
+    // Middleware pour vérifier si le token correspond à l'utilisateur
     Route::middleware([
         CheckTokenCorrespondance::class
     ])->group(function () {
+        // Routes pour les ordinateurs
+        Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+        Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
+        Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
+        Route::post('/double_computer_connected', [ComputerController::class,'double_computer_connected']);
+
         // Routes pour les fichiers
         Route::controller(FileController::class)->group(function () {
-            Route::post('/retrieve_file', 'retrieveFile');
-            Route::post('/retrieve_file_version', 'retrieveFileVersion');
-            Route::post('/retrieve_files_list', 'retrieveFilesList');
-            Route::post('/test_file', 'test_file');
+            Route::post('/retrieveFile', 'retrieveFile');
+            Route::post('/retrieveAllFileVersions', 'retrieveAllFileVersions');
+            Route::post('/retrieveFilesList', 'retrieveFilesList');
+            Route::post('/syncFile', 'syncFile');
+            Route::post('/retrieveLastVersion', 'retrieveLastVersion');
+            Route::post('/syncFolder', 'syncFolder');
+            
         });
-
-
-        Route::resource('/computers', ComputerController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
-
-        Route::post('/auth_computer', [ComputerController::class,'auth_computer']);
-
-        Route::post('/auth_computer_{computer_id}', [ComputerController::class,'auth_computer_id']);
-
-        Route::post('/double_computer_connected', [ComputerController::class,'double_computer_connected']);
     });
-    // Routes pour les ordinateurs
+
+    // Chemin sans verification de correspondance de token
     Route::controller(ComputerController::class)->group(function () {
         Route::post('/register_computer', 'registerComputer');
     });
@@ -55,6 +57,7 @@ Route::get('/bootstrap', [FileController::class, 'retrieveBootstrapFile']);
 Route::post('/verify_computer_availability', [ComputerController::class, 'verifyComputerAvailability']);
 
 Route::post('/sync_files', [FileController::class, 'syncFileRequest']);
+
 
 // Route pour tester l'API
 Route::get('/api_test', function () {
