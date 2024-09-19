@@ -28,6 +28,7 @@ function module.new()
     self.name = "websocket_private" -- nom du module (doit etre unique)
     self.session_id = 0 -- id de la session courante
     self.version = nil -- version du module
+    self.path = nil -- chemin du module
 
     self.registered = false
     self.socket_id = nil

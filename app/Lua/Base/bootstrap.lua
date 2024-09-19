@@ -195,6 +195,8 @@ local function register_computer(c_name, c_description)
         end
 
         local json = textutils.unserializeJSON(data)
+
+        -- WTF ? PK on l'utilise pas ?
     else
         print("Erreur: ")
         print(fail_string)
@@ -258,6 +260,7 @@ local function initialize_computer()
         if executed_code then
             local current_module = executed_code.new()
             current_module.version = version
+            current_module.path = file
             table.insert(modules, current_module)
             print("OK "..file .. " version: " .. version)
         else
@@ -268,7 +271,7 @@ local function initialize_computer()
     print("Fin de la sequence de chargement des modules")
     print("Ajout des modules dans le gestionnaire de thread")
     for i = 1, #modules do
-        _G.parallel:loadModule(modules[i].name, modules[i].version, modules[i])
+        _G.parallel:loadModule(modules[i].name, modules[i].version, modules[i], modules[i].path)
     end
     print("Fin de l'ajout des modules dans le gestionnaire de thread")
     print("Verification de la sequence d'initialisation")

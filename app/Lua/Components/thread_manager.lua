@@ -126,10 +126,11 @@ Paramètre : version (number) - La version du module
 Paramètre : module (table) - Le module à charger
 Retour : Aucun
 ]]--
-function Thread_manager:loadModule(module_name, version, module)
+function Thread_manager:loadModule(module_name, version, module, path)
     if type(module_name) ~= "string" then error("Module name must be a string", 2) end
     if type(version) ~= "number" then error("Version must be a number", 2) end
     if type(module) ~= "table" then error("Module must be a table", 2) end
+    if type(path) ~= "string" then error("Path must be a string", 2) end
 
     local module_function = function()
         module:run(self.session_id)
@@ -137,7 +138,7 @@ function Thread_manager:loadModule(module_name, version, module)
 
     module:init(self.session_id)
 
-    table.insert(self.modules_toAdd, { coroutine.create(module_function), module_name, version })
+    table.insert(self.modules_toAdd, { coroutine.create(module_function), module_name, version, path })
 end
 
 --#endregion External Fonctions - Modules

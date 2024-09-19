@@ -27,6 +27,7 @@ function module.new()
     self.name = "sample" -- nom du module (doit être unique)
     self.session_id = 0 -- id de la session courante
     self.version = nil -- version du module
+    self.path = nil -- chemin du module
 
     -- Initialisation des variables inhérentes au module
     

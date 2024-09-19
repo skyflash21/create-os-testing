@@ -7,7 +7,8 @@ function module.new()
     -- Initialisation des variables
     self.name = "user_interface"
     self.session_id = 0
-    self.version = "1.0.0"
+    self.version = nil
+    self.path = nil -- chemin du module
 
     -- Initialisation des variables inhérentes au module
     self.username = "user"
