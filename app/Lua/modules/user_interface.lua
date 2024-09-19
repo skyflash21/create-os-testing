@@ -188,7 +188,10 @@ function module:execute_command(...)
     local command = args[1]
     table.remove(args, 1)
 
-    local code, version = api.get_code("Commands/" .. command .. ".lua", false)
+    --remove all space and lower
+    command = command:lower():gsub("%s+", "")
+
+    local code, version = api.get_code("\\Commands\\" .. command .. ".lua", false)
 
     if code == nil then
         self:print_to_buffer("Commande invalide " .. command, colors.red)

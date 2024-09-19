@@ -205,6 +205,15 @@ class FileController extends Controller
         $version = $request->input('version');
         $get_raw = $request->input('raw');
 
+        // If the file does not exist in the database, sync it
+        if (!$file_path) {
+            return response()->json([
+                'error' => 'Le chemin du fichier est manquant.'
+            ], 400);
+        }
+
+        $file = File::where('file_path', $file_path)->first();
+        
         // syncFileRequest
         $this->syncFileRequest($file_path);
 
