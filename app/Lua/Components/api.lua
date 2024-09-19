@@ -116,8 +116,41 @@ local function get_code(path, crash_if_error)
     return code_loaded(), data.version
 end
 
+--[[
+    Permet de récupérer la version d'un fichier
+    @param path: string
+    @param crash_if_error: boolean
+    @return int
+]]
+local function get_code_version(path, crash_if_error)
+    crash_if_error = crash_if_error or false
+
+    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
+        ["Accept"] = "application/json", ["Host"] = _G.host }
+    local body = { path = path ,computer_id = os.getComputerID() }
+    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveLastVersion",
+        textutils.serializeJSON(body), header)
+
+    if not response then
+        if crash_if_error then
+            show_code_loading_error("Erreur lors de la récupération de la version", http_failing_response, path, "La réponse recu est nil ou vide.")
+        end
+        return nil
+    end
+
+    local data = response.readAll()
+    response.close()
+    local json = textutils.unserializeJSON(data)
+
+    json.version = tonumber(json.version)
+
+    return json.version
+end
+
+
 return {
     get = get,
     post = post,
-    get_code = get_code
+    get_code = get_code,
+    get_code_version = get_code_version
 }

@@ -198,7 +198,14 @@ function module:execute_command(...)
         return
     end
 
-    _G.parallel:waitfor(function() code.execute(self,args) end)
+    _G.parallel:waitfor(function() 
+        local successed, returnedData = xpcall(function()
+            code.execute(self,args)
+        end, function() -- 1
+            self:print_to_buffer("Erreur lors de l'execution de " .. command, colors.red)
+        end)
+    end)
+
 
     code = nil
 end
