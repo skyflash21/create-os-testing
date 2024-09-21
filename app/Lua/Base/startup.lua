@@ -83,22 +83,6 @@ if not is_api_available() then
     end
 end
 
-local response, http_failing_response = http.get(_G.url .. "/api/startup");
-
-if response then
-    if fs.exists("startup") then
-        fs.delete("startup")
-    end
-    local file = fs.open("startup", "w")
-    file.write(response.readAll())
-    file.close()
-    response.close()
-else
-    print("Error: " .. http_failing_response.getResponseCode())
-    read()
-    os.shutdown()
-end
-
 local response, http_failing_response = http.get(_G.url .. "/api/bootstrap");
 
 if response then
@@ -107,6 +91,7 @@ if response then
 
     local func, err = load(code, "bootstrap", "t", _ENV)
     if not func then
+        term.setTextColor(colors.red)
         print("Error: " .. err)
         read()
         os.shutdown()
@@ -114,6 +99,9 @@ if response then
 
     -- Fonction personnalisée pour gérer les erreurs et afficher la ligne en question
     local function error_handler(err)
+        term.setTextColor(colors.red)
+        print("Error: " .. err)
+        read()
         os.shutdown()
     end
 

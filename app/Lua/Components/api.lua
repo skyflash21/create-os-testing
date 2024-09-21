@@ -1,3 +1,17 @@
+------------------------------------------------[Explication des fonctions]------------------------------------------------
+
+--------------[Fonctions Internes]--------------
+--[check_api_status] Permet de vérifier le status de l'api
+--[show_code_loading_error] Permet d'afficher une erreur
+
+--------------[Request Standard]--------------
+--[post] Permet de faire une requête POST
+
+--------------[Requête compliqué]--------------
+--[get_raw_code] Permet de récupérer le code d'un fichier
+--[get_code] Permet de récupérer le code d'un fichier et de le charger
+--[get_code_version] Permet de récupérer la version d'un fichier
+
 ------------------------------------------------[Fonctions Internes]------------------------------------------------
 
 --[[
@@ -15,20 +29,6 @@ local function check_api_status(crash_if_not_available)
     else
         return true
     end
-end
-
---[[
-    Permet d'afficher une erreur
-    @param fail_string: string
-    @param http_failing_response: table
-    @param path: string
-    @param error_message: string
-    @return void
-]]
-local function show_code_loading_error(fail_string, http_failing_response, path, error_message)
-    _G.status = "critical_error"
-    _G.error_detail = { tpye = "code loading error", message = fail_string, code = http_failing_response.getResponseCode(), path = path, error_message = error_message }
-    sleep(0)
 end
 
 ------------------------------------------------[Request Standard]------------------------------------------------
@@ -59,8 +59,7 @@ local function post(path,additional_body,additional_header)
     local response, fail_string, http_failing_response = http.post(_G.url.. "/api/"..path, textutils.serializeJSON(body), header)
 
     if not response then
-        check_api_status()
-        return nil, fail_string, http_failing_response
+        error("Erreur lors de la requête POST: " .. fail_string)
     end
 
     local data = response.readAll()
@@ -69,51 +68,79 @@ local function post(path,additional_body,additional_header)
     return data
 end
 
-------------------------------------------------[Requête compliqué]------------------------------------------------
+
+------------------------------------------------[Fonctions Local]------------------------------------------------
+
 --[[
-    Permet de récupérer le code d'un fichier et de le charger
+    Permet de récupérer le code d'un fichier
     @param path: string
-    @param crash_if_error: boolean
-    @return function
+    @return string
 ]]
-local function get_code(path, crash_if_error)
+local function retrieve_file_from_server(path)
     -- Vérification de la variable path
     if path == nil and type(path) ~= "string" then
         error("path must be a string, current type is " .. type(path))
     end
-    
-    if crash_if_error == nil then crash_if_error = true end
 
     -- Récupération des données
     local data, fail_string, http_failing_response = api.post("retrieveFile",{ path = path })
 
     if data == nil then
-        if crash_if_error then
-            show_code_loading_error("Erreur lors de la récupération du fichier", http_failing_response, path, "Le fichier recu est nil.")
-        end
+        error("Erreur lors de la récupération du code: " .. fail_string)
         return nil
     end
 
-    data = textutils.unserializeJSON(data) -- On convertit le json en table
+    -- On convertit le json en table
+    data = textutils.unserializeJSON(data)
 
     -- Vérification de la réponse
     if data == nil or data == "" then
-        if crash_if_error then
-            show_code_loading_error("Erreur lors de la récupération du fichier", http_failing_response, path, "Le fichier recu est nil ou vide.")
-        end
+        error("La réponse recu est nil ou vide.")
         return nil
     end
 
-    local code = data.content
+    return data.content, data.version
+end
+
+------------------------------------------------[Requête compliqué]------------------------------------------------
+
+
+--[[
+    Permet de récupérer le code d'un fichier
+    @param path: string
+    @param get_raw: boolean
+    @param crash_if_error: boolean
+    @return string
+]]
+local function get_code(path, get_raw, crash_if_error)
+
+    if not get_raw then
+        get_raw = false
+    end
+
+    -- Récupération du code
+    local code, version = retrieve_file_from_server(path)
+
+    -- Vérification du code
+    if code == nil or version == nil then
+        error("Erreur lors de la récupération du code")
+    end
+
+    -- Retourne le code si get_raw est true
+    if get_raw then
+        return code, version
+    end
+
+    -- Chargement du code
     local filename = string.match(path, "[^/]+$")
     local code_loaded, err = load(code, filename, "t", _ENV)
 
+    -- Vérification du code chargé
     if code_loaded == nil then
-        if crash_if_error then show_code_loading_error(err, nil, path, err) end
-        return nil
+        error(err)
     end
 
-    return code_loaded(), data.version
+    return code_loaded(), version
 end
 
 --[[
@@ -122,31 +149,27 @@ end
     @param crash_if_error: boolean
     @return int
 ]]
-local function get_code_version(path, crash_if_error)
-    crash_if_error = crash_if_error or false
+local function get_code_version(path)
+    local data = api.post("retrieveLastVersion", {path = path})
 
-    local header = { Authorization = "Bearer " .. settings.get("token"), ["Content-Type"] = "application/json",
-        ["Accept"] = "application/json", ["Host"] = _G.host }
-    local body = { path = path ,computer_id = os.getComputerID() }
-    local response, fail_string, http_failing_response = http.post(_G.url .. "/api/retrieveLastVersion",
-        textutils.serializeJSON(body), header)
+    data = textutils.unserializeJSON(data)
 
-    if not response then
-        if crash_if_error then
-            show_code_loading_error("Erreur lors de la récupération de la version", http_failing_response, path, "La réponse recu est nil ou vide.")
-        end
-        return nil
+    if data == nil then
+        error("Erreur lors de la récupération de la version du code: La réponse recu est nil ou vide.")
     end
 
-    local data = response.readAll()
-    response.close()
-    local json = textutils.unserializeJSON(data)
-
-    json.version = tonumber(json.version)
-
-    return json.version
+    return data.version
 end
 
+--[[
+    Permet de demander au serveur une commande
+    @param commandName: string
+    @return function
+]]
+local function get_command(commandName)
+end
+
+------------------------------------------------[Exportation]------------------------------------------------
 
 return {
     get = get,

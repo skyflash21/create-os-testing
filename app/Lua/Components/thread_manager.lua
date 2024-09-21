@@ -69,8 +69,8 @@ Fonction : Lance des tâches en parallèle et attend qu'elles soient toutes term
 Paramètre : tasks (table) - Liste des tâches à exécuter
 Retour : Aucun
 ]]--
-function Thread_manager:waitforAll(tasks)
-    if type(tasks) ~= "table" then error("Tasks must be a table", 2) end
+function Thread_manager:waitForAll(tasks)
+    if type(tasks) ~= "table" then error("Tasks must be a table, got " .. type(tasks), 2) end
 
     local remaining_tasks = #tasks
     for i = 1, remaining_tasks do
@@ -86,7 +86,7 @@ function Thread_manager:waitforAll(tasks)
     end
 
     while remaining_tasks > 0 do
-        coroutine.yield()
+    sleep(0)
     end
 end
 
@@ -138,7 +138,24 @@ function Thread_manager:loadModule(module_name, version, module, path)
 
     module:init(self.session_id)
 
-    table.insert(self.modules_toAdd, { coroutine.create(module_function), module_name, version, path })
+    table.insert(self.modules_toAdd, { coroutine.create(module_function), module_name, version, path , module})
+end
+
+--[[
+Fonction : Permet de recuperer un module
+Paramètre : module_name (string) - Le nom du module
+Retour : Module (table) - Le module
+]]--
+function Thread_manager:getModule(module_name)
+    if type(module_name) ~= "string" then error("Module name must be a string", 2) end
+
+    for i = 1, #self.modules do
+        if self.modules[i][2] == module_name then
+            return self.modules[i][5]
+        end
+    end
+
+    return nil
 end
 
 --#endregion External Fonctions - Modules

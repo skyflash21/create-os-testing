@@ -11,7 +11,7 @@ function module.new()
     self.path = nil -- chemin du module
 
     -- Initialisation des variables inhérentes au module
-    self.username = "user"
+    self.domain = "user"
     self.command_history = {}
     self.history_index = 0
     self.current_input = ""
@@ -68,7 +68,7 @@ function module:run(current_session_id)
             self.history_index = #self.command_history + 1
 
             -- Affiche la commande avant de l'exécuter
-            self:print_to_buffer(self.username .. "> " .. input, colors.green)
+            self:print_to_buffer(self.domain .. "> " .. input, colors.green)
         end
 
         -- Exécute la commande
@@ -76,14 +76,13 @@ function module:run(current_session_id)
     end
 end
 
--- Affiche le prompt avec le username en bas de l'écran
 function module:display_prompt()
     local _, screen_height = term.getSize()
     term.setCursorPos(1, screen_height)  -- Positionner le curseur en bas de l'écran
     term.setTextColor(colors.green)
     term.setBackgroundColor(colors.gray)
     term.clearLine()
-    term.write(self.username .. "> ")
+    term.write(self.domain .. "> ")
     term.setTextColor(colors.white)
     term.write(self.current_input)
     term.setBackgroundColor(colors.black)
@@ -171,7 +170,30 @@ function module:render_screen()
 end
 
 -- Ajoute une ligne au buffer d'affichage et rend l'écran
-function module:print_to_buffer(text, color)
+function module:print_to_buffer(text, color, centered)
+    centered = centered or false
+
+    -- Si le text est plus grand que la largeur de l'écran, on le tronque et on le print en plusieurs lignes
+    if string.len(text) > self.screen_width then
+        local text_length = string.len(text)
+        local start_index = 1
+        local end_index = self.screen_width
+        while start_index < text_length do
+            local line = text:sub(start_index, end_index)
+            self:print_to_buffer(line, color, centered)
+            start_index = end_index + 1
+            end_index = end_index + self.screen_width
+        end
+        return
+    end
+
+    if centered then
+        local width = self.screen_width
+        local text_length = string.len(text)
+        local padding = math.floor((width - text_length) / 2)
+        text = string.rep(" ", padding) .. text
+    end
+
     color = color or colors.white
     table.insert(self.display_buffer, {text = text, color = color})
 
@@ -183,6 +205,14 @@ function module:print_to_buffer(text, color)
     self:render_screen()
 end
 
+function module:print_line_to_buffer(color)
+    local width = self.screen_width
+
+    local line = string.rep("-", width)
+    color = color or colors.white
+    self:print_to_buffer(line, color)
+end
+
 -- Exécute une commande saisie par l'utilisateur
 function module:execute_command(...)
     local args = {...}
@@ -192,7 +222,7 @@ function module:execute_command(...)
     --remove all space and lower
     command = command:lower():gsub("%s+", "")
 
-    local code, version = api.get_code("\\Commands\\" .. command .. ".lua", false)
+    local code, version = api.get_code("\\Commands\\" .. self.domain .. "\\" .. command .. ".lua", false)
 
     if code == nil then
         self:print_to_buffer("Commande invalide " .. command, colors.red)
@@ -202,11 +232,11 @@ function module:execute_command(...)
     _G.parallel:waitfor(function() 
         local successed, returnedData = xpcall(function()
             code.execute(self,args)
-        end, function() -- 1
+        end, function( error )
             self:print_to_buffer("Erreur lors de l'execution de " .. command, colors.red)
+            self:print_to_buffer(error, colors.red)
         end)
     end)
-
 
     code = nil
 end
